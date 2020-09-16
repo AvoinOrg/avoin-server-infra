@@ -3,6 +3,10 @@ Configuration files, scripts, and documentation for Avoin server infrastructure.
 
 ## Docker
 
+Run docker-compose.yml with
+
+    docker-compose up --build
+
 Docker-compose uses the following env variables:
     
     # required, the directory for saving nginx logs

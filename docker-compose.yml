@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+    nginx:
+        build: ./nginx
+        container_name: nginx
+        env_file:
+            - ./.env
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - /etc/letsencrypt/live/server.avoin.org/fullchain.pem:/etc/letsencrypt/live/server.avoin.org/fullchain.pem
+            - /etc/letsencrypt/live/server.avoin.org/privkey.pem:/etc/letsencrypt/live/server.avoin.org/privkey.pem
+            - ${AVOIN_LOGS_PATH}:/var/log/nginx
+            - ${AVOIN_DATA_PATH}:/data
+    

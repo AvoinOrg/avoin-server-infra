@@ -3,7 +3,7 @@ Configuration files, scripts, and documentation for Avoin server infrastructure.
 
 ## Docker
 
-Run docker-compose.yml with
+Launch Nginx server with
 
     docker-compose up --build
 

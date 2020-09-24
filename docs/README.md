@@ -19,4 +19,5 @@ Environment="http://IP:PORT/"
 
 
 Bi-daily cronjob for cert renewal
+    
     0 */12 * * * certbot renew --post-hook "docker-compose -f /home/avoin/avoin-server/prod/docker-compose.yml restart"

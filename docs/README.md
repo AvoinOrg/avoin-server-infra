@@ -6,13 +6,20 @@ Initializing docker service:
 
     nano /etc/systemd/system/docker.service.d/http-proxy.conf 
 
-[Service]
-Environment="http://IP:PORT/"
+Add the following line:
+
+    [Service]  
+    Environment="http://IP:PORT/"
+    
+Then
 
     nano /etc/systemd/system/docker.service.d/https-proxy.conf 
+Add the following line:
 
-[Service]
-Environment="http://IP:PORT/"
+    [Service]
+    Environment="http://IP:PORT/"
+
+Then
 
     systemctl daemon-reload
     systemctl restart docker

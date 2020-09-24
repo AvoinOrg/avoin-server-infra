@@ -1,6 +1,6 @@
 # Misc
 
-Initializing docker service:
+### Initializing docker service:
 
     mkdir -p /etc/systemd/system/docker.service.d
 
@@ -25,6 +25,6 @@ Then
     systemctl restart docker
 
 
-Bi-daily cronjob for cert renewal
+### Bi-daily cronjob for cert renewal
     
     0 */12 * * * certbot renew --post-hook "docker-compose -f /home/avoin/avoin-server/prod/docker-compose.yml restart"

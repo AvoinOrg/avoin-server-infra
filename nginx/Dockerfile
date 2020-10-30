@@ -78,7 +78,6 @@ RUN make && \
     make install && \
     mkdir -p /var/cache/nginx/client/temp
 
-ARG CLIMATE_MAP_PORT="8081"
 ENV CLIMATE_MAP_PORT=${CLIMATE_MAP_PORT}
 
 RUN rm -rf /etc/nginx/*.default

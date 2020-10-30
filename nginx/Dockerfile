@@ -85,7 +85,7 @@ RUN rm -rf /etc/nginx/*.default
 COPY ./config/ /etc/nginx/
 
 # Add env variables to conf files
-RUN find /etc/nginx -iname "*.conf" | while read line ; do envsubst '$CLIMATE_MAP_PORT' < $line | tee $line ; done
+# RUN find /etc/nginx -iname "*.conf" | while read line ; do envsubst '$CLIMATE_MAP_PORT' < $line | tee $line ; done
 
 CMD ["nginx", "-g", "daemon off;"]
 

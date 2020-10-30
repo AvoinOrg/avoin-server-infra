@@ -14,4 +14,9 @@ services:
             - /etc/letsencrypt/live/server.avoin.org/privkey.pem:/etc/letsencrypt/live/server.avoin.org/privkey.pem
             - ${AVOIN_LOGS_PATH}:/var/log/nginx
             - ${AVOIN_DATA_PATH}:/data
-    
+        networks:
+            - proxy-net
+          
+networks:
+    proxy-net:
+        name: proxy-net

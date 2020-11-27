@@ -84,8 +84,10 @@ RUN rm -rf /etc/nginx/*.default
 
 COPY ./config/ /etc/nginx/
 
-# Add env variables to conf files
-# RUN find /etc/nginx -iname "*.conf" | while read line ; do envsubst '$CLIMATE_MAP_PORT' < $line | tee $line ; done
+# Add env variables to conf files with the entrypoint
+COPY docker-entrypoint.sh /
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 CMD ["nginx", "-g", "daemon off;"]
 

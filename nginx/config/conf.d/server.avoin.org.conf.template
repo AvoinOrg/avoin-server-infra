@@ -56,8 +56,8 @@ server {
         uwsgi_param UWSGI_SCHEME https;
         uwsgi_param Host $host;
         uwsgi_param X-Real-IP $remote_addr ; 
-        proxy_param X-Forwarded-For $proxy_add_x_forwarded_for; 
-        proxy_param X-Forwarded-Proto $http_x_forwarded_proto; 
+        uwsgi_param X-Forwarded-For $proxy_add_x_forwarded_for; 
+        uwsgi_param X-Forwarded-Proto $http_x_forwarded_proto; 
     }
 
     location /data/ {

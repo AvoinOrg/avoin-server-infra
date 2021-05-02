@@ -50,7 +50,7 @@ server {
     }
 
     location /gis/ {        
-        rewrite /gis/?(.*)$ /$1 break
+        rewrite ^/gis/(.*) /$1  break;
         uwsgi_pass gis;
         include uwsgi_params;
 

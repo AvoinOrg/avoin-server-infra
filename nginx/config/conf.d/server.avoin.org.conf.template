@@ -26,7 +26,6 @@ server {
     ssl_certificate /etc/letsencrypt/live/server.avoin.org/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/server.avoin.org/privkey.pem;
 
-    rewrite ^/gis/(.*) /test break;
     # TODO: figure out how to resolve ip to correct domain
 
     # location /proxy {
@@ -58,6 +57,8 @@ server {
         uwsgi_pass gis;
         include uwsgi_params;
     }
+    
+    rewrite ^/gis/(.*) /test break;
 
     location /data/ {
         if ($request_method = OPTIONS) {

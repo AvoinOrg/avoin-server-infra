@@ -2,6 +2,10 @@ upstream climate_map {
     server climate-map-node:8080 max_fails=0; 
 }
 
+upstream gis { 
+    server 172.17.0.1:8090 max_fails=0; 
+}
+
 server {
     listen 80;
     server_name server.avoin.org;
@@ -50,7 +54,7 @@ server {
     }
 
     location /gis/ {        
-        uwsgi_pass 172.17.0.1:8090/;
+        uwsgi_pass gis/;
         include uwsgi_params;
 
         uwsgi_param UWSGI_SCHEME https;

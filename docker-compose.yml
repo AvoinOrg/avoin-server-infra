@@ -16,6 +16,7 @@ services:
       - ${AVOIN_DATA_PATH}:/data
     networks:
       - proxy-net
+    nework_mode: "host"
 
 networks:
   proxy-net:

@@ -51,7 +51,7 @@ server {
 
     location /gis/ {        
         rewrite ^/gis/(.*) /$1  break;
-        uwsgi_pass gis;
+        uwsgi_pass 172.17.0.1:8090;
         include uwsgi_params;
 
         uwsgi_param UWSGI_SCHEME https;

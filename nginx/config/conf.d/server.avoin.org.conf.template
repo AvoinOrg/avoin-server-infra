@@ -53,12 +53,12 @@ server {
         proxy_pass http://climate_map/;
     }
 
-    location /gis/ {        
+    rewrite /gis/(.+) /$1 break;
+
+    location / {        
         uwsgi_pass gis;
         include uwsgi_params;
     }
-    
-    rewrite ^/gis/(.*) /test break;
 
     location /data/ {
         if ($request_method = OPTIONS) {

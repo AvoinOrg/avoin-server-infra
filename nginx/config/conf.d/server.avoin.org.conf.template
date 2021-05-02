@@ -53,12 +53,16 @@ server {
         proxy_pass http://climate_map/;
     }
 
-    rewrite /gis/(.+) /$1 break;
+    location /gis/ {
+        proxy_redirect off; 
+        proxy_set_header Host $host; 
+        proxy_set_header X-Real-IP $remote_addr; 
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+        proxy_set_header X-Forwarded-Proto https; 
 
-    location / {        
-        uwsgi_pass gis;
-        include uwsgi_params;
+        proxy_pass https://localhost/;
     }
+
 
     location /data/ {
         if ($request_method = OPTIONS) {
@@ -83,5 +87,10 @@ server {
         proxy_intercept_errors on;
         proxy_pass https://${DATA_URL}/;
         log_not_found off;
+    }
+
+    location / {
+        uwsgi_pass gis;
+        include uwsgi_params;
     }
 }

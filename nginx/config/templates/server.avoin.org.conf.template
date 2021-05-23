@@ -80,6 +80,10 @@ server {
         error_log off;
     }
 
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
     location / {
         uwsgi_pass gis;
         include uwsgi_params;

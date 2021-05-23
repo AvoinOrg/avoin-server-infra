@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
-envsubst '${DATA_URL}' < /etc/nginx/conf.d/server.avoin.org.conf.template > /etc/nginx/conf.d/server.avoin.org.conf
-rm /etc/nginx/conf.d/server.avoin.org.conf.template
+envsubst '${DATA_URL}' < /etc/nginx/templates/server.avoin.org.conf.template > /etc/nginx/conf.d/server.avoin.org.conf
 
 exec "$@"

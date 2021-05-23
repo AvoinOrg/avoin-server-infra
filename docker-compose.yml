@@ -12,6 +12,7 @@ services:
     volumes:
       - /etc/letsencrypt/live/server.avoin.org/fullchain.pem:/etc/letsencrypt/live/server.avoin.org/fullchain.pem
       - /etc/letsencrypt/live/server.avoin.org/privkey.pem:/etc/letsencrypt/live/server.avoin.org/privkey.pem
+      - ./certbot:/var/www/certbot
       - ${AVOIN_LOGS_PATH}:/var/log/nginx
       - ${AVOIN_DATA_PATH}:/data
     networks:

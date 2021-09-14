@@ -17,6 +17,7 @@ services:
       - ${AVOIN_DATA_PATH}:/data
     networks:
       - proxy-net
+    restart: always
 
 networks:
   proxy-net:

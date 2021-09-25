@@ -81,9 +81,4 @@ server {
         log_not_found off;
         error_log off;
     }
-
-    location / {
-        uwsgi_pass gis;
-        include uwsgi_params;
-    }
 }

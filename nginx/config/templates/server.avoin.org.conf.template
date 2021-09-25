@@ -2,8 +2,8 @@ upstream climate_map {
     server climate-map-node:8080 max_fails=0; 
 }
 
-upstream gis { 
-    server 172.17.0.1:8090 max_fails=0; 
+upstream geoserver { 
+    server geoserver:8080 max_fails=0; 
 }
 
 server {
@@ -55,14 +55,14 @@ server {
         proxy_pass http://climate_map/;
     }
 
-    location /gis/ {
+    location /geoserver/ {
         proxy_redirect off; 
         proxy_set_header Host $host; 
         proxy_set_header X-Real-IP $remote_addr; 
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
         proxy_set_header X-Forwarded-Proto https; 
 
-        proxy_pass https://localhost/;
+        proxy_pass http://geoserver/;
     }
 
 

@@ -2,10 +2,6 @@ upstream climate_map {
     server climate-map-node:8080 max_fails=0; 
 }
 
-upstream geoserver { 
-    server geoserver:8080 max_fails=0; 
-}
-
 server {
     listen 80;
     server_name server.avoin.org;

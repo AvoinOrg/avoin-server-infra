@@ -1,3 +1,11 @@
+upstream upstream_climate_map { 
+    server climate-map-node:8080 max_fails=0; 
+}
+
+upstream upstream_keycloak { 
+    server keycloak:8080 max_fails=0; 
+}
+
 server {
     listen 80;
     server_name server.avoin.org;
@@ -38,26 +46,25 @@ server {
     # }
 
     location /climate-map/ {
-        resolver 127.0.0.1 valid=30s;
-        set $upstream_climate_map climate-map-node:8080;
-
         proxy_redirect off; 
         proxy_set_header Host $host; 
         proxy_set_header X-Real-IP $remote_addr; 
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
         proxy_set_header X-Forwarded-Proto https; 
 
-        proxy_pass http://$upstream_climate_map/;
+        proxy_pass http://upstream_climate_map/;
     }
-
+    
     location /auth/ {
-        resolver 127.0.0.1 valid=30s;
-        set $upstream_zitadel zitadel:9080;
+        proxy_redirect off; 
+        proxy_set_header Host $host; 
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr; 
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+        proxy_set_header X-Forwarded-Proto https; 
 
-        grpc_pass grpc://$upstream_zitadel/;
-        grpc_set_header Host $host;
+        proxy_pass http://upstream_keycloak;
     }
-
 
     location /data/ {
         allow all;

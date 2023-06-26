@@ -1,0 +1,56 @@
+http:
+  routers:
+    climate-map:
+      rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/climate-map`)"
+      service: climate-map
+      middlewares:
+        - climate-map-stripprefix:
+      tls:
+        certResolver: myresolver
+    keycloak:
+      rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/auth`)"
+      service: keycloak
+      tls:
+        certResolver: myresolver
+    data:
+      rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/data`)"
+      service: data-service
+      middlewares:
+        - data-headers
+        - data-stripprefix
+      tls:
+        certResolver: myresolver
+
+  services:
+    climate-map:
+      loadBalancer:
+        servers:
+          - url: "{{env "CLIMATE_MAP_URL"}}"
+    keycloak:
+      loadBalancer:
+        servers:
+          - url: "{{env "AUTH_URL"}}"
+    data-service:
+      loadBalancer:
+        servers:
+        # CHANGE CORRECT URL HERE
+          - url: "https://{{env "DATA_URL"}}"
+
+  middlewares:
+    data-headers:
+      headers:
+        customRequestHeaders:
+        # CHANGE CORRECT DOMAIN HERE
+          Host: "{{env "DATA_URL"}}"
+        customResponseHeaders:
+          x-amz-id-2: ""
+          x-amz-request-id: ""
+          Set-Cookie: ""
+    data-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/data"
+    climate-map-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/climate-map"

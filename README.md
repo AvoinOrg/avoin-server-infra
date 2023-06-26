@@ -3,19 +3,26 @@ Configuration files, scripts, and documentation for Avoin server infrastructure.
 
 ## Docker
 
-Launch Nginx server with
+Launch the Traefik reverse proxy with
 
-    docker-compose up --build
+    docker compose up --build
 
-Docker-compose uses the following env variables:
+Copy the ".env.template" to ".env", and configure the variables. Docker compose uses the following env variables:
     
-    # required, the directory for saving nginx logs
+    # the directory for saving nginx logs
     AVOIN_LOGS_PATH
 
-    # required, the root directory for serving files
-    AVOIN_DATA_PATH
+    # the cloud file storage url for serving files. Generally, S3 has been used.
+    DATA_URL
 
-    # optional, the port used by a running climate-map-backend service
-    CLIMATE_MAP_PORT
+    # the url for authentication service, e.g. keycloak
+    AUTH_URL
 
-These can be set in an .env file in the root folder.
+    # domain name, for which Traefik automatically used letsencrypt to generate certificates
+    DOMAIN
+
+    # admin domain email address for the letsencrypt certs
+    DOMAIN_EMAIL
+
+
+The traefik dashboard is accessible at http://localhost:8090/dashboard/ 

@@ -4,17 +4,21 @@ http:
       rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/climate-map`)"
       service: climate-map
       middlewares:
-        - climate-map-stripprefix:
+        - climate-map-stripprefix
       tls:
         certResolver: myresolver
-    keycloak:
-      rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/auth`)"
-      service: keycloak
+    zitadel:
+      rule: "Host(`auth.{{env "DOMAIN"}}`)"
+      service: zitadel
+      # middlewares:
+      #   - auth-stripprefix
       tls:
         certResolver: myresolver
+        # domains:
+        #   - main: "auth.server.avoin.org"
     data:
       rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/data`)"
-      service: data-service
+      service: data
       middlewares:
         - data-headers
         - data-stripprefix
@@ -26,11 +30,11 @@ http:
       loadBalancer:
         servers:
           - url: "{{env "CLIMATE_MAP_URL"}}"
-    keycloak:
+    zitadel:
       loadBalancer:
         servers:
           - url: "{{env "AUTH_URL"}}"
-    data-service:
+    data:
       loadBalancer:
         servers:
         # CHANGE CORRECT URL HERE
@@ -54,3 +58,7 @@ http:
       stripPrefix:
         prefixes:
           - "/climate-map"
+    # auth-stripprefix:
+    #   stripPrefix:
+    #     prefixes:
+    #       - "/auth"

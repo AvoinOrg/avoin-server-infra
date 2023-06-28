@@ -57,7 +57,7 @@ services:
       - "26257:26257"
     volumes:
       - "./certs:/cockroach/certs:rw"
-      - "./data:/cockroach/cockroach-data:rw"
+      - "${DATA_PATH}/zitadel-crdb-data:/cockroach/cockroach-data:rw"
     deploy:
       resources:
         limits:

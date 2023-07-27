@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    env_file:
+      - ./.env
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true 
+      - --providers.docker=false
+      - --providers.file.filename=/etc/traefik/dynamic_conf.yml
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.myresolver.acme.tlschallenge=true
+      - --certificatesresolvers.myresolver.acme.email=${DOMAIN_EMAIL}
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      # development acme server, without rate limits
+      # - --certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.myresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
+      - --log.filePath=/logs/traefik.log
+      - --log.level=INFO
+    ports:
+      - 80:80
+      - 443:443
+      - 8090:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
+      - ${AVOIN_LOGS_PATH}:/logs
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    external: true

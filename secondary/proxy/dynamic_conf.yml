@@ -1,0 +1,15 @@
+http:
+  routers:
+    tolgee:
+      rule: "Host(`tolgee.{{env "DOMAIN"}}`)"
+      service: tolgee
+      # middlewares:
+      #   - auth-stripprefix
+      tls:
+        certResolver: myresolver
+
+  services:
+    tolgee:
+      loadBalancer:
+        servers:
+          - url: "{{env "TOLGEE_URL"}}"

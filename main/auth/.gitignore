@@ -1,0 +1,8 @@
+.env
+
+zitadel-init-steps.yaml
+zitadel-secrets.yaml
+zitadel-config.yaml
+
+certs/
+zitadel-certs/

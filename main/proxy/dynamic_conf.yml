@@ -8,7 +8,7 @@ http:
       tls:
         certResolver: myresolver
     zitadel:
-      rule: "Host(`auth.{{env "DOMAIN"}}`)"
+      rule: "Host(`{{env "AUTH_DOMAIN"}}`)"
       service: zitadel
       # middlewares:
       #   - auth-stripprefix

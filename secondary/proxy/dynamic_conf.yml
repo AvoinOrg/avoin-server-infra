@@ -1,7 +1,7 @@
 http:
   routers:
     tolgee:
-      rule: "Host(`tolgee.{{env "DOMAIN"}}`)"
+      rule: "Host(`{{env "TOLGEE_DOMAIN"}}`)"
       service: tolgee
       # middlewares:
       #   - auth-stripprefix

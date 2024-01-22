@@ -10,12 +10,17 @@ http:
     zitadel:
       rule: "Host(`{{env "AUTH_DOMAIN"}}`)"
       service: zitadel
-      # middlewares:
-      #   - auth-stripprefix
       tls:
         certResolver: myresolver
-        # domains:
-        #   - main: "auth.server.avoin.org"
+    # A redirect route, because Zitadel is unable to update email links after a domain change.
+    # Yes, even ones sent after reconfiguring.
+    # old-zitadel:
+    #   rule: "Host(`{{env "OLD_AUTH_DOMAIN"}}`)"
+    #   middlewares:
+    #     - old-auth-redirect
+    #   service: noop@internal
+    #   tls:
+    #     certResolver: myresolver
     data:
       rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/data`)"
       service: data
@@ -34,17 +39,19 @@ http:
       loadBalancer:
         servers:
           - url: "{{env "AUTH_URL"}}"
+    # old_zitadel:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "{{env "OLD_AUTH_URL"}}"
     data:
       loadBalancer:
         servers:
-        # CHANGE CORRECT URL HERE
           - url: "https://{{env "DATA_URL"}}"
 
   middlewares:
     data-headers:
       headers:
         customRequestHeaders:
-        # CHANGE CORRECT DOMAIN HERE
           Host: "{{env "DATA_URL"}}"
         customResponseHeaders:
           x-amz-id-2: ""
@@ -58,7 +65,8 @@ http:
       stripPrefix:
         prefixes:
           - "/climate-map"
-    # auth-stripprefix:
-    #   stripPrefix:
-    #     prefixes:
-    #       - "/auth"
+    # old-auth-redirect:
+    #   redirectRegex:
+    #     regex: "^https?://{{env "OLD_AUTH_DOMAIN"}}/(.*)"
+    #     replacement: "https://{{env "AUTH_DOMAIN"}}/${1}"
+    #     permanent: true

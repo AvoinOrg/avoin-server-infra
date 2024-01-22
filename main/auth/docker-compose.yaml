@@ -2,6 +2,8 @@ version: "3.8"
 
 services:
   zitadel:
+    env_file:
+      - ./.env
     restart: "always"
     container_name: zitadel
     networks:
@@ -25,6 +27,8 @@ services:
           memory: 1.5G
 
   zitadel-certs-crdb:
+    env_file:
+      - ./.env
     image: "cockroachdb/cockroach:${CRDB_VERSION}"
     container_name: "zitadel-certs-crdb"
     entrypoint: ["/bin/bash", "-c"]
@@ -40,6 +44,8 @@ services:
         condition: "service_healthy"
 
   zitadel-crdb:
+    env_file:
+      - ./.env
     restart: "always"
     container_name: "zitadel-crdb"
     networks:

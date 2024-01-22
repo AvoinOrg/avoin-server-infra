@@ -7,7 +7,7 @@ services:
     networks:
       - "zitadel"
       - "proxy-net"
-    image: "ghcr.io/zitadel/zitadel:latest"
+    image: "ghcr.io/zitadel/zitadel:${ZITADEL_VERSION}"
     command: 'start-from-init --config /zitadel-config.yaml --config /zitadel-secrets.yaml --steps /zitadel-init-steps.yaml --masterkey "${ZITADEL_MASTERKEY}" --tlsMode external'
     # ports:
     #   - "9080:8080"
@@ -25,7 +25,7 @@ services:
           memory: 1.5G
 
   zitadel-certs-crdb:
-    image: "cockroachdb/cockroach:v22.2.2"
+    image: "cockroachdb/cockroach:${CRDB_VERSION}"
     container_name: "zitadel-certs-crdb"
     entrypoint: ["/bin/bash", "-c"]
     command:
@@ -44,7 +44,7 @@ services:
     container_name: "zitadel-crdb"
     networks:
       - "zitadel"
-    image: "cockroachdb/cockroach:v22.2.2"
+    image: "cockroachdb/cockroach:${CRDB_VERSION}"
     command: "start-single-node --advertise-addr zitadel-crdb"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]

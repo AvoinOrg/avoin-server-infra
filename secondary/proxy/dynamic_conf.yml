@@ -8,8 +8,20 @@ http:
       tls:
         certResolver: myresolver
 
+    notebook:
+      rule: "Host(`{{env "NOTEBOOK_DOMAIN"}}`)"
+      service: notebook
+      # middlewares:
+      #   - auth-stripprefix
+      tls:
+        certResolver: myresolver
+
   services:
     tolgee:
       loadBalancer:
         servers:
           - url: "{{env "TOLGEE_URL"}}"
+    notebook:
+      loadBalancer:
+        servers:
+          - url: "{{env "NOTEBOOK_URL"}}"

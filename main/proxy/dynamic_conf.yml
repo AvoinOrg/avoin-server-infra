@@ -22,10 +22,8 @@ http:
     #   tls:
     #     certResolver: myresolver
     loki:
-      rule: "Host(`{{env "LOKI_DOMAIN"}}`) && PathPrefix(`/loki`)"
+      rule: "Host(`{{env "LOKI_DOMAIN"}}`)"
       service: loki
-      middlewares:
-        - loki-stripprefix
       tls:
         certResolver: myresolver
     
@@ -65,7 +63,7 @@ http:
     loki:
       loadBalancer:
         servers:
-          - url: "http://{{env "LOKI_URL"}}"
+          - url: "http://{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD"}}@{{env "LOKI_URL"}}"
     
     # grafana:
     #   loadBalancer:
@@ -89,11 +87,6 @@ http:
       stripPrefix:
         prefixes:
           - "/climate-map"
-
-    loki-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/loki"
     
     # grafana-stripprefix:
     #   stripPrefix:

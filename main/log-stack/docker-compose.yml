@@ -10,7 +10,7 @@ services:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
       - ${LOKI_STORAGE_PATH}:/data
     networks:
-      - loki-stack
+      - proxy-net
     restart: always
 
   # promtail:
@@ -23,7 +23,7 @@ services:
   #     - ./promtail-config.yaml:/etc/promtail/config.yml
   #   command: -config.file=/etc/promtail/config.yml
   #   networks:
-  #     - loki-stack
+  #     - proxy-net
   #   depends_on:
   #     - loki
 
@@ -39,11 +39,11 @@ services:
     volumes:
       - ${GRAFANA_STORAGE_PATH}:/var/lib/grafana
     networks:
-      - loki-stack
+      - proxy-net
     depends_on:
       - loki
     restart: always
 
 networks:
-  loki-stack:
+  proxy-net:
     external: true

@@ -20,7 +20,6 @@ services:
       # development acme server, without rate limits
       # - --certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.myresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
-      - --log.filePath=/logs/traefik.log
       - --log.level=INFO
     ports:
       - 80:80
@@ -30,7 +29,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
       - ./dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
-      - ${AVOIN_LOGS_PATH}:/logs
     networks:
       - proxy-net
     restart: unless-stopped

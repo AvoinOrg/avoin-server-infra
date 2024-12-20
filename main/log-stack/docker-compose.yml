@@ -1,0 +1,49 @@
+services:
+  loki:
+    image: grafana/loki:${LOKI_VERSION}
+    container_name: loki
+    command: -config.expand-env=true -config.file=/etc/loki/local-config.yaml
+    user: "10001:10001" 
+    ports:
+      - "${LOKI_PORT}:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - ${LOKI_STORAGE_PATH}:/data
+    networks:
+      - loki-stack
+    restart: always
+
+  # promtail:
+  #   image: grafana/promtail:${PROMTAIL_VERSION}
+  #   container_name: promtail
+  #   volumes:
+  #     - /var/log:/var/log
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ${DOCKER_CONTAINER_PATH}:/var/lib/docker/containers
+  #     - ./promtail-config.yaml:/etc/promtail/config.yml
+  #   command: -config.file=/etc/promtail/config.yml
+  #   networks:
+  #     - loki-stack
+  #   depends_on:
+  #     - loki
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    container_name: grafana
+    user: "472:472"
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ${GRAFANA_STORAGE_PATH}:/var/lib/grafana
+    networks:
+      - loki-stack
+    depends_on:
+      - loki
+    restart: always
+
+networks:
+  loki-stack:
+    external: true

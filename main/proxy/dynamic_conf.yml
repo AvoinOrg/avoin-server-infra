@@ -21,6 +21,21 @@ http:
     #   service: noop@internal
     #   tls:
     #     certResolver: myresolver
+    loki:
+      rule: "Host(`{{env "LOKI_DOMAIN"}}`) && PathPrefix(`/loki`)"
+      service: loki
+      middlewares:
+        - loki-stripprefix
+      tls:
+        certResolver: myresolver
+    
+    # grafana:
+    #   rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/grafana`)"
+    #   service: grafana
+    #   middlewares:
+    #     - grafana-stripprefix
+    #   tls:
+    #     certResolver: myresolver
     data:
       rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/data`)"
       service: data
@@ -47,6 +62,15 @@ http:
       loadBalancer:
         servers:
           - url: "https://{{env "DATA_URL"}}"
+    loki:
+      loadBalancer:
+        servers:
+          - url: "http://{{env "LOKI_URL"}}"
+    
+    # grafana:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://{{env "GRAFANA_URL"}}"
 
   middlewares:
     data-headers:
@@ -65,6 +89,16 @@ http:
       stripPrefix:
         prefixes:
           - "/climate-map"
+
+    loki-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/loki"
+    
+    # grafana-stripprefix:
+    #   stripPrefix:
+    #     prefixes:
+    #       - "/grafana"
     # old-auth-redirect:
     #   redirectRegex:
     #     regex: "^https?://{{env "OLD_AUTH_DOMAIN"}}/(.*)"

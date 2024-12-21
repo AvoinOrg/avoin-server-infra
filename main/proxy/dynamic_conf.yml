@@ -84,7 +84,7 @@ http:
     loki-auth:
       basicAuth:
         users:
-          - "asdf:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
+          - "{{env "LOKI_USER"}}:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
     data-headers:
       headers:
         customRequestHeaders:

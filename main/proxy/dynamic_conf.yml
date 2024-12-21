@@ -28,6 +28,8 @@ http:
     loki:
       rule: "Host(`{{env "LOKI_DOMAIN"}}`)"
       service: loki
+      middlewares:
+        - loki-auth
       tls:
         domains:
           - main: "{{env "LOKI_DOMAIN"}}"
@@ -71,7 +73,7 @@ http:
     loki:
       loadBalancer:
         servers:
-          - url: "https://{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD"}}@{{env "LOKI_URL"}}"
+          - url: "https://{{env "LOKI_URL"}}"
     
     # grafana:
     #   loadBalancer:
@@ -79,6 +81,10 @@ http:
     #       - url: "http://{{env "GRAFANA_URL"}}"
 
   middlewares:
+    loki-auth:
+      basicAuth:
+        users:
+          - "{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD"}}"
     data-headers:
       headers:
         customRequestHeaders:

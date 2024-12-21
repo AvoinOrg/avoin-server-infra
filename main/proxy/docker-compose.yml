@@ -19,12 +19,12 @@ services:
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
 
       - --certificatesresolvers.myresolver.acme.tlschallenge=true
-      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myresolver.acme.email=${DOMAIN_EMAIL}
-      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      # - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      # - --certificatesresolvers.myresolver.acme.email=${DOMAIN_EMAIL}
+      # - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      # - --certificatesresolvers.myresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
       # development acme server, without rate limits
       # - --certificatesresolvers.myresolver.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
-      - --certificatesresolvers.myresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
       - --log.level=INFO
     ports:
       - 80:80

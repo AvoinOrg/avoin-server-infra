@@ -6,11 +6,15 @@ http:
       middlewares:
         - climate-map-stripprefix
       tls:
+        domains:
+          - main: "{{env "DOMAIN"}}"
         certResolver: myresolver
     zitadel:
       rule: "Host(`{{env "AUTH_DOMAIN"}}`)"
       service: zitadel
       tls:
+        domains:
+          - main: "{{env "AUTH_DOMAIN"}}"
         certResolver: myresolver
     # A redirect route, because Zitadel is unable to update email links after a domain change.
     # Yes, even ones sent after reconfiguring.
@@ -25,6 +29,8 @@ http:
       rule: "Host(`{{env "LOKI_DOMAIN"}}`)"
       service: loki
       tls:
+        domains:
+          - main: "{{env "LOKI_DOMAIN"}}"
         certResolver: myresolver
     
     # grafana:
@@ -41,6 +47,8 @@ http:
         - data-headers
         - data-stripprefix
       tls:
+        domains:
+          - main: "{{env "DOMAIN"}}"
         certResolver: myresolver
 
   services:

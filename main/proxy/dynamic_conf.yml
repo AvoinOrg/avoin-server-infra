@@ -71,7 +71,7 @@ http:
     loki:
       loadBalancer:
         servers:
-          - url: "http://{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD"}}@{{env "LOKI_URL"}}"
+          - url: "https://{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD"}}@{{env "LOKI_URL"}}"
     
     # grafana:
     #   loadBalancer:

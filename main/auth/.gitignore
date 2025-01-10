@@ -6,3 +6,4 @@ zitadel-config.yaml
 
 certs/
 zitadel-certs/
+certs-backup

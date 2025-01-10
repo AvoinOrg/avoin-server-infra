@@ -69,11 +69,11 @@ http:
     data:
       loadBalancer:
         servers:
-          - url: "https://{{env "DATA_URL"}}"
+          - url: "{{env "DATA_URL"}}"
     loki:
       loadBalancer:
         servers:
-          - url: "https://{{env "LOKI_URL"}}"
+          - url: "{{env "LOKI_URL"}}"
     
     # grafana:
     #   loadBalancer:
@@ -84,7 +84,7 @@ http:
     loki-auth:
       basicAuth:
         users:
-          - "{{env "LOKI_USER"}}:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
+          - "{{env "LOKI_USER"}}:{{env "LOKI_PASSWORD_HASH"}}"
     data-headers:
       headers:
         customRequestHeaders:

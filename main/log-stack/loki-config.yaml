@@ -3,14 +3,22 @@ auth_enabled: false
 server:
   http_listen_port: 3100
 
+common:
+  instance_addr: 127.0.0.1
+  ring:
+    zone_awareness_enabled: false
+    kvstore:
+      store: inmemory
+
 ingester:
-  wal:
-    dir: /tmp/loki/wal
   lifecycler:
     ring:
+      zone_awareness_enabled: false
       kvstore:
         store: inmemory
       replication_factor: 1
+  wal:
+    dir: /tmp/loki/wal
 
 storage_config:
   tsdb_shipper:

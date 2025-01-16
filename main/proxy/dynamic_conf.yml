@@ -69,7 +69,7 @@ http:
     data:
       loadBalancer:
         servers:
-          - url: "{{env "DATA_URL"}}"
+          - url: "https://{{env "DATA_URL"}}"
     loki:
       loadBalancer:
         servers:

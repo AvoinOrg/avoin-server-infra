@@ -3,7 +3,9 @@
 zitadel-init-steps.yaml
 zitadel-secrets.yaml
 zitadel-config.yaml
+zitadel-config-new.yaml
+zitadel-config-mirror.yaml
+zitadel-config-old.yaml
 
-certs/
-zitadel-certs/
-certs-backup
+certs
+zitadel-certs

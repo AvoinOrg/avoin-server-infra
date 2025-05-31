@@ -5,7 +5,6 @@ services:
     env_file:
       - ./.env
     restart: "always"
-    container_name: zitadel
     networks:
       - "zitadel"
       - "proxy-net"
@@ -14,60 +13,78 @@ services:
     # ports:
     #   - "9080:8080"
     depends_on:
-      zitadel-certs-crdb:
-        condition: 'service_completed_successfully'
+      # zitadel-certs-crdb:
+      #   condition: 'service_completed_successfully'
+      zitadel-postgres:
+        condition: 'service_healthy'
     volumes:
       - './zitadel-config.yaml:/zitadel-config.yaml:ro'
-      - './zitadel-secrets.yaml:/zitadel-secrets.yaml:ro'
+      # - './zitadel-config-new.yaml:/zitadel-config-new.yaml:ro'
+      # - './zitadel-config-mirror.yaml:/zitadel-config-mirror.yaml:ro'
+      # - './zitadel-secrets.yaml:/zitadel-secrets.yaml:ro'
       - './zitadel-init-steps.yaml:/zitadel-init-steps.yaml:ro'
-      - './zitadel-certs:/crdb-certs:ro' 
+      # - './zitadel-certs:/crdb-certs:ro' 
     deploy:
       resources:
         limits:
           memory: 1.5G
 
-  zitadel-certs-crdb:
-    env_file:
-      - ./.env
-    image: "cockroachdb/cockroach:${CRDB_VERSION}"
-    container_name: "zitadel-certs-crdb"
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      [
-        "cp /certs/* /zitadel-certs/ && cockroach cert create-client --overwrite --certs-dir /zitadel-certs/ --ca-key /zitadel-certs/ca.key zitadel_user && chown 1000:1000 /zitadel-certs/*",
-      ]
-    volumes:
-      - "./certs:/certs:ro"
-      - "./zitadel-certs:/zitadel-certs:rw"
-    depends_on:
-      zitadel-crdb:
-        condition: "service_healthy"
+  # zitadel-certs-crdb:
+  #   env_file:
+  #     - ./.env
+  #   image: "cockroachdb/cockroach:${CRDB_VERSION}"
+  #   entrypoint: ["/bin/bash", "-c"]
+  #   command:
+  #     [
+  #       "cp /certs/* /zitadel-certs/ && cockroach cert create-client --overwrite --certs-dir /zitadel-certs/ --ca-key /zitadel-certs/ca.key zitadel_user && chown 1000:1000 /zitadel-certs/*",
+  #     ]
+  #   volumes:
+  #     - "./certs:/certs:ro"
+  #     - "./zitadel-certs:/zitadel-certs:rw"
+  #   depends_on:
+  #     zitadel-crdb:
+  #       condition: "service_healthy"
 
-  zitadel-crdb:
+  # zitadel-crdb:
+  #   env_file:
+  #     - ./.env
+  #   restart: "always"
+  #   networks:
+  #     - "zitadel"
+  #   image: "cockroachdb/cockroach:${CRDB_VERSION}"
+  #   command: "start-single-node --advertise-addr zitadel-crdb"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+  #     interval: "10s"
+  #     timeout: "30s"
+  #     retries: 5
+  #     start_period: "20s"
+  #   ports:
+  #     - "9090:8080"
+  #     - "26257:26257"
+  #   volumes:
+  #     - "./certs:/cockroach/certs:rw"
+  #     - "${DATA_PATH}/zitadel-crdb-data:/cockroach/cockroach-data:rw"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
+  
+  zitadel-postgres:
+    restart: 'always'
+    image: postgres:17-alpine
     env_file:
       - ./.env
-    restart: "always"
-    container_name: "zitadel-crdb"
-    networks:
-      - "zitadel"
-    image: "cockroachdb/cockroach:${CRDB_VERSION}"
-    command: "start-single-node --advertise-addr zitadel-crdb"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
-      interval: "10s"
-      timeout: "30s"
-      retries: 5
-      start_period: "20s"
-    ports:
-      - "9090:8080"
-      - "26257:26257"
     volumes:
-      - "./certs:/cockroach/certs:rw"
-      - "${DATA_PATH}/zitadel-crdb-data:/cockroach/cockroach-data:rw"
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+      - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data
+    networks:
+      - 'zitadel'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "zitadel", "-U", "postgres"]
+      interval: '10s'
+      timeout: '30s'
+      retries: 5
+      start_period: '20s'
 
 networks:
   zitadel:

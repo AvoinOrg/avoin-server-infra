@@ -17,6 +17,8 @@ services:
       #   condition: 'service_completed_successfully'
       zitadel-postgres:
         condition: 'service_healthy'
+      zitadel-actions:
+        condition: 'service_started'
     volumes:
       - './zitadel-config.yaml:/zitadel-config.yaml:ro'
       # - './zitadel-config-new.yaml:/zitadel-config-new.yaml:ro'
@@ -85,6 +87,19 @@ services:
       timeout: '30s'
       retries: 5
       start_period: '20s'
+  
+  zitadel-actions:
+    image: node:18-alpine
+    restart: always
+    networks:
+      - "zitadel"
+    ports:
+      - ${ACTIONSERVER_PORT}:${ACTIONSERVER_PORT}
+    volumes:
+      - ./actionserver:/app
+    working_dir: /app
+    command: node server.js
+
 
 networks:
   zitadel:

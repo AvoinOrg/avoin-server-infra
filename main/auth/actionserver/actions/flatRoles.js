@@ -1,5 +1,7 @@
 function action(req, res) {
     let body = [];
+    console.log("Received request for flatRoles action");
+
     req.on('data', (chunk) => {
         body.push(chunk);
     }).on('end', () => {
@@ -17,11 +19,11 @@ function action(req, res) {
         }
 
         const newAppendedClaims = [];
-        
+
         // ZITADEL action payload typically has claims under context.claims
         // If context or context.claims is not present, default to an empty object.
         const claimsFromZitadel = requestData.userinfo || {}
-        
+
         // Regex to identify ZITADEL project role claims.
         // Assumes project IDs are numeric.
         // Example: urn:zitadel:iam:org:project:249571727204417539:roles
@@ -43,6 +45,11 @@ function action(req, res) {
             }
         }
 
+        // newAppendedClaims.push({
+        //     key: "roles",
+        //     value: "LUONNONMETSAKARTTA_USER"
+        // })
+
         // Construct the response payload.
         // This structure is based on the fields available in the original Go example.
         // You can populate set_user_metadata and append_log_claims if needed.
@@ -55,7 +62,7 @@ function action(req, res) {
             //     // Example: "Processed flat roles"
             // ]
         };
-        
+
         try {
             const jsonData = JSON.stringify(responsePayload);
             res.setHeader('Content-Type', 'application/json');

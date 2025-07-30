@@ -1,0 +1,143 @@
+version: "3.9"
+
+services:
+  # ────────────────────────────────────────────────────────────
+  #  Postgres – metadata store for Supabase Storage
+  # ────────────────────────────────────────────────────────────
+  db:
+    image: supabase/postgres:17.4.1.068
+    container_name: supabase-db
+    restart: unless-stopped
+    env_file:
+      - ./.env              # keeps POSTGRES_USER / PASSWORD / DB
+    environment:
+      SUPABASE_ROLES_PASSWORD: ${POSTGRES_PASSWORD}  
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data:z
+    networks:
+      - supabase
+
+  # ────────────────────────────────────────────────────────────
+  #  imgproxy – on-the-fly transforms & public image endpoint
+  # ────────────────────────────────────────────────────────────
+  imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:v3.29.1
+    container_name: supabase-imgproxy
+    env_file:
+      - ./.env
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_AUTO_WEBP: "true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    networks:
+      - supabase      # internal traffic from Storage
+      - proxy-net     # exposed via reverse‑proxy
+
+  # pgmeta:
+  #   image: pg-meta/pg-meta:v0.79.2
+  #   env_file:
+  #     - ./.env
+  #   environment:
+  #     PG_META_DB_HOST: db
+  #     PG_META_DB_PORT: 5432
+  #     PG_META_DB_NAME: ${POSTGRES_DB}
+  #     PG_META_DB_USER: supabase_admin
+  #     PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+  #   networks: [supabase]
+
+  # studio:
+  #   image: supabase/studio:2025.07.28-sha-578b707
+  #   depends_on:
+  #     storage: { condition: service_started }
+  #   env_file:
+  #     - ./.env
+  #   environment:
+  #     SUPABASE_URL: http://storage:5000
+  #     STUDIO_PG_META_URL: ""
+  #     SUPABASE_URL: http://kong:8000
+  #     SUPABASE_ANON_KEY: ${ANON_KEY}
+  #     SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+  #     STUDIO_DISABLE_TELEMETRY: "true"
+  #     STUDIO_DISABLE_PLATFORM: "true" 
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3011:3000"
+  #   healthcheck:
+  #     test:
+  #       [
+  #         "CMD",
+  #         "node",
+  #         "-e",
+  #         "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"
+  #       ]
+  #     timeout: 10s
+  #     interval: 5s
+  #     retries: 3
+  #   networks: [supabase]
+
+  # kong:
+  #   image: kong/kong:2.8.5
+  #   depends_on:
+  #     db: { condition: service_healthy }
+  #   env_file: ./.env          # needs the same keys you already use
+  #   environment:
+  #     KONG_DATABASE: "off"
+  #     KONG_LOG_LEVEL: "info"
+  #     KONG_AUTO_MIGRATE: "true"
+  #     SUPABASE_ANON_KEY: ${ANON_KEY}
+  #     SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+  #   # ports:
+  #   # - "8000:8000"  
+  #   networks: [supabase]
+  # ────────────────────────────────────────────────────────────
+  #  Supabase Storage API (S3 + REST)
+  # ────────────────────────────────────────────────────────────
+  storage:
+    image: supabase/storage-api:v1.25.12
+    container_name: supabase-storage
+    env_file:
+      - ./.env
+      - ./.storage.env
+    environment:
+      # compose DATABASE_URL from env-file vars so we don’t hard‑code secrets here
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+    ports:
+      - "5000:5000"          # public API endpoint
+      - "5001:5001"          # imgproxy endpoint
+    depends_on:
+      db:
+        condition: service_healthy
+      imgproxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    restart: unless-stopped
+    volumes:
+      - ./volumes/storage:/var/lib/storage:z
+    networks:
+      - supabase      # talks SQL + S3 internally
+      - proxy-net     # exposed via reverse‑proxy
+
+# ──────────────────────────────────────────────────────────────
+#  Docker Networks
+# ──────────────────────────────────────────────────────────────
+networks:
+  supabase:          # private network for DB & internal services
+    driver: bridge
+  proxy-net:         # reverse-proxy (Traefik/Nginx) attaches here
+    external: true

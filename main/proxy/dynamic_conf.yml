@@ -34,6 +34,13 @@ http:
         domains:
           - main: "{{env "LOKI_DOMAIN"}}"
         certResolver: myresolver
+    storage:
+      rule: "Host(`{{env "STORAGE_DOMAIN"}}`)"
+      service: storage
+      tls:
+        domains:
+          - main: "{{env "STORAGE_DOMAIN"}}"
+        certResolver: myresolver
     
     # grafana:
     #   rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/grafana`)"
@@ -74,6 +81,10 @@ http:
       loadBalancer:
         servers:
           - url: "{{env "LOKI_URL"}}"
+    storage:
+      loadBalancer:
+        servers:
+          - url: "{{env "STORAGE_URL"}}"
     
     # grafana:
     #   loadBalancer:

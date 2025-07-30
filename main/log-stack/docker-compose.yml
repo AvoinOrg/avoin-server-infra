@@ -1,11 +1,11 @@
 services:
   loki:
-    image: grafana/loki:${LOKI_VERSION}
+    image: grafana/loki:main-a3380f6
     container_name: loki
     command: -config.expand-env=true -config.file=/etc/loki/local-config.yaml
     user: "10001:10001" 
     ports:
-      - "${LOKI_PORT}:3100"
+      - "3100:3100"
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
       - ${LOKI_STORAGE_PATH}:/data
@@ -28,11 +28,11 @@ services:
   #     - loki
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION}
+    image: grafana/grafana:12.2.0-16557133545
     container_name: grafana
     user: "472:472"
     ports:
-      - "${GRAFANA_PORT}:3000"
+      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}

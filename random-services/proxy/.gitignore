@@ -1,0 +1,6 @@
+logs
+data
+certbot/*
+letsencrypt/*
+
+.env

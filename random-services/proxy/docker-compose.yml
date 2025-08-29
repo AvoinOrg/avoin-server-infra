@@ -1,0 +1,45 @@
+services:
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik
+    env_file:
+      - ./.env
+    command:
+      # API and Dashboard
+      - --api.insecure=true
+      - --api.dashboard=true
+
+      # Enable Docker Provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false # Explicitly enable services via labels
+      - --providers.docker.network=proxy-net # Network for Traefik to connect to services
+
+      # Entrypoints & Redirection
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+
+      # Certificate Resolver (Let's Encrypt)
+      - --certificatesresolvers.myresolver.acme.httpchallenge=true
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.myresolver.acme.email=${DOMAIN_EMAIL}
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+
+      # Logging
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8090:8080" # Dashboard port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    name: proxy-net # Explicitly name the network
+    external: true

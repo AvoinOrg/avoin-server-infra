@@ -3,7 +3,7 @@ version: '3'
 services:
   tolgee:
     container_name: tolgee
-    image: tolgee/tolgee
+    image: tolgee/tolgee:v3.55.0
     env_file:
       - .env
     ports:
@@ -13,6 +13,12 @@ services:
       - ${DATA_PATH}:/data
     networks:
       - proxy-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tolgee.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.tolgee.entrypoints=websecure"
+      - "traefik.http.routers.tolgee.tls.certresolver=myresolver"
+      - "traefik.http.services.tolgee.loadbalancer.server.port=8080"
 
 
 networks:

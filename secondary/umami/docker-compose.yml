@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   umami-db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: umami-db
     restart: unless-stopped
     env_file:
@@ -17,7 +17,6 @@ services:
       - umami-net
 
   umami:
-    # v2 image for PostgreSQL
     image: ghcr.io/umami-software/umami:${UMAMI_IMAGE_TAG}
     container_name: umami
     restart: unless-stopped
@@ -38,40 +37,46 @@ services:
     networks:
       - umami-net
       - proxy-net
-
-  oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_IMAGE_TAG}
-    container_name: oauth2-proxy-umami
-    restart: unless-stopped
-    env_file:
-      - .env
-    command:
-      - --provider=oidc
-      - --oidc-issuer-url=${OIDC_ISSUER_URL}
-      - --client-id=${OAUTH2_PROXY_CLIENT_ID}
-      - --client-secret=${OAUTH2_PROXY_CLIENT_SECRET}
-      - --cookie-secret=${OAUTH2_PROXY_COOKIE_SECRET}
-      - --cookie-secure=true
-      - --cookie-samesite=lax
-      - --cookie-domain=${COOKIE_DOMAIN}
-      - --email-domain=${ALLOWED_EMAIL_DOMAIN}
-      - --scope=openid profile email
-      - --reverse-proxy=true
-      - --http-address=0.0.0.0:4180
-      - --upstream=http://umami:3000
-      - --skip-auth-route=^/${TRACKER_SCRIPT_NAME}$
-      - --skip-auth-route=^${COLLECT_API_ENDPOINT}$
-      - --skip-auth-route=^/share/.*$
-      - --silence-ping-logging=true
-    networks:
-      - proxy-net
-      - umami-net
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.umami.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.umami.entrypoints=websecure"
       - "traefik.http.routers.umami.tls.certresolver=myresolver"
       - "traefik.http.services.umami.loadbalancer.server.port=4180"
+
+  # oauth2-proxy:
+  #   image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_IMAGE_TAG}
+  #   container_name: oauth2-proxy-umami
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   command:
+  #     - --provider=oidc
+  #     - --oidc-issuer-url=${OIDC_ISSUER_URL}
+  #     - --client-id=${OAUTH2_PROXY_CLIENT_ID}
+  #     - --client-secret=${OAUTH2_PROXY_CLIENT_SECRET}
+  #     - --cookie-secret=${OAUTH2_PROXY_COOKIE_SECRET}
+  #     - --cookie-secure=true
+  #     - --cookie-samesite=lax
+  #     - --cookie-domain=${COOKIE_DOMAIN}
+  #     - --email-domain=${ALLOWED_EMAIL_DOMAIN}
+  #     - --scope=openid profile email
+  #     - --reverse-proxy=true
+  #     - --http-address=0.0.0.0:4180
+  #     - --upstream=http://umami:3000
+  #     - --skip-auth-route=^/${TRACKER_SCRIPT_NAME}$
+  #     - --skip-auth-route=^${COLLECT_API_ENDPOINT}$
+  #     - --skip-auth-route=^/share/.*$
+  #     - --silence-ping-logging=true
+  #   networks:
+  #     - proxy-net
+  #     - umami-net
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.umami.rule=Host(`${DOMAIN}`)"
+  #     - "traefik.http.routers.umami.entrypoints=websecure"
+  #     - "traefik.http.routers.umami.tls.certresolver=myresolver"
+  #     - "traefik.http.services.umami.loadbalancer.server.port=4180"
 
 networks:
   proxy-net:

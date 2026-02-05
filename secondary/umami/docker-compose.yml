@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.umami.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.umami.entrypoints=websecure"
       - "traefik.http.routers.umami.tls.certresolver=myresolver"
-      - "traefik.http.services.umami.loadbalancer.server.port=4180"
+      - "traefik.http.services.umami.loadbalancer.server.port=3000"
 
   # oauth2-proxy:
   #   image: quay.io/oauth2-proxy/oauth2-proxy:${OAUTH2_PROXY_IMAGE_TAG}

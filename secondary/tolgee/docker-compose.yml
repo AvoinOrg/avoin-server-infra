@@ -19,6 +19,6 @@ services:
     #   - "traefik.http.routers.tolgee.tls.certresolver=myresolver"
     #   - "traefik.http.services.tolgee.loadbalancer.server.port=8080"
 
-networks:
-  proxy-net:
-    external: true
+# networks:
+#   proxy-net:
+#     external: true

@@ -10,8 +10,8 @@ services:
       - "8081:8080"
     volumes:
       - ${DATA_PATH}:/data
-    networks:
-      - proxy-net
+    # networks:
+    #   - proxy-net
     # labels:
     #   - "traefik.enable=true"
     #   - "traefik.http.routers.tolgee.rule=Host(`${DOMAIN}`)"

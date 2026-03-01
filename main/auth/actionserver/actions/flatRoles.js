@@ -19,6 +19,7 @@ function action(req, res) {
         }
 
         const newAppendedClaims = [];
+        const groups = []
 
         // ZITADEL action payload typically has claims under context.claims
         // If context or context.claims is not present, default to an empty object.
@@ -40,6 +41,7 @@ function action(req, res) {
                             key: `flat:${key}`, // New claim key, e.g., "flat:urn:zitadel:iam:org:project:..."
                             value: roleNames    // Array of role names, e.g., ["luonnonmetsakartat_admin", "luonnonmetsakartat_editor"]
                         });
+                        groups.push(...roleNames); // Add role names to groups array
                     }
                 }
             }
@@ -58,6 +60,7 @@ function action(req, res) {
             //     // Example: { key: "your_metadata_key", value: Buffer.from("your_metadata_value").toString('base64') }
             // ],
             append_claims: newAppendedClaims,
+            groups: [...new Set(groups)],
             // append_log_claims: [
             //     // Example: "Processed flat roles"
             // ]

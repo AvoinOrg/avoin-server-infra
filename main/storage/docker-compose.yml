@@ -34,6 +34,9 @@ services:
       IMGPROXY_BIND: ":5001"
       IMGPROXY_USE_ETAG: "true"
       IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_S3_REGION: "${AWS_DEFAULT_REGION}"
+      IMGPROXY_S3_ENDPOINT: "${GLOBAL_S3_ENDPOINT}"
+      IMGPROXY_S3_FORCE_PATH_STYLE: "${GLOBAL_S3_FORCE_PATH_STYLE}"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "imgproxy", "health"]

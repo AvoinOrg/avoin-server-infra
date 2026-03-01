@@ -1,0 +1,117 @@
+version: "3.9"
+
+networks:
+  proxy-net: # your external Traefik network
+    external: true
+  directus-net:
+    driver: bridge
+
+services:
+  directus-db:
+    image: postgres:17-alpine
+    container_name: directus-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DIRECTUS_DB_NAME}
+      POSTGRES_USER: ${DIRECTUS_DB_USER}
+      POSTGRES_PASSWORD: ${DIRECTUS_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${DATA_PATH}/postgres:/var/lib/postgresql/data
+      # Optional: create extensions (eg, pgcrypto) on first init
+      # - ./initdb:/docker-entrypoint-initdb.d
+    networks: [directus-net]
+
+  directus:
+    image: directus/directus:${DIRECTUS_IMAGE_TAG:-latest}
+    container_name: directus
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # --- core ---
+      KEY: ${DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET}
+      PUBLIC_URL: ${PUBLIC_URL}
+      PORT: 8055
+      ACCEPT_TERMS: "true"
+
+      # --- database ---
+      DB_CLIENT: "pg"
+      DB_HOST: directus-db
+      DB_PORT: 5432
+      DB_DATABASE: ${DIRECTUS_DB_NAME}
+      DB_USER: ${DIRECTUS_DB_USER}
+      DB_PASSWORD: ${DIRECTUS_DB_PASSWORD}
+
+      # --- first admin bootstrap ---
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
+
+      # --- files (local disk) ---
+      STORAGE_LOCATIONS: "local"
+      STORAGE_LOCAL_DRIVER: "local"
+      STORAGE_LOCAL_ROOT: "/directus/uploads"
+
+      # --- CORS (optional if your Next.js calls API from another origin) ---
+      CORS_ENABLED: ${CORS_ENABLED}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      LOG_LEVEL: "debug"
+
+      # --- OIDC (ZITADEL) ---
+      AUTH_PROVIDERS: "zitadel"
+      AUTH_ZITADEL_DRIVER: "openid"
+      AUTH_ZITADEL_CLIENT_ID: ${AUTH_ZITADEL_CLIENT_ID}
+      AUTH_ZITADEL_CLIENT_SECRET: ${AUTH_ZITADEL_CLIENT_SECRET}
+      AUTH_ZITADEL_ISSUER_URL: ${AUTH_ZITADEL_ISSUER_URL}
+      AUTH_ZITADEL_SCOPE: "openid profile email"
+      AUTH_ZITADEL_IDENTIFIER_KEY: "email"
+      AUTH_ZITADEL_LABEL: "Avoin SSO"
+      # Option A: Read groups from a claim you set in Zitadel (common: "groups")
+      AUTH_ZITADEL_GROUP_CLAIM_NAME: ${AUTH_ZITADEL_GROUP_CLAIM_NAME}
+      # Option B (optional): Direct role mapping from groups → Directus role UUIDs
+      # Example: json:{"admin":"<uuid-role-admin>","editor":"<uuid-role-editor>"}
+      # AUTH_ZITADEL_ROLE_MAPPING: ${AUTH_ZITADEL_ROLE_MAPPING}
+      AUTH_ZITADEL_ALLOW_PUBLIC_REGISTRATION: "false"
+      AUTH_ZITADEL_SYNC_USER_INFO: "true"
+      AUTH_ZITADEL_MODE: "session"
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: "None"
+      REFRESH_TOKEN_COOKIE_SECURE: "true"
+      REFRESH_TOKEN_COOKIE_SAME_SITE: "None"
+      ROOT_REDIRECT: "/auth/login/zitadel?redirect=/admin"
+
+    depends_on:
+      directus-db: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-T",
+          "5",
+          "-O",
+          "-",
+          "http://localhost:8055/server/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ${DATA_PATH}/uploads:/directus/uploads
+    networks:
+      - directus-net
+      - proxy-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.directus.rule=Host(`${DIRECTUS_DOMAIN}`)"
+      - "traefik.http.routers.directus.entrypoints=websecure"
+      - "traefik.http.routers.directus.tls.certresolver=myresolver"
+      - "traefik.http.services.directus.loadbalancer.server.port=8055"

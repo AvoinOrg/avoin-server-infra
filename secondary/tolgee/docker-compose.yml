@@ -10,6 +10,7 @@ services:
     #   - "8081:8080"
     volumes:
       - ${DATA_PATH}:/data
+    restart: unless-stopped
     # networks:
     #   - proxy-net
     # labels:

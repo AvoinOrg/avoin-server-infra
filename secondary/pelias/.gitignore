@@ -1,0 +1,15 @@
+# Generated Pelias data when DATA_PATH is pointed inside this stack folder.
+/data/
+/elasticsearch/
+/openstreetmap/
+/openaddresses/
+/whosonfirst/
+/geonames/
+/polylines/
+/interpolation/
+/placeholder/
+/transit/
+/csv/
+
+# Local operator environment. The root .gitignore also ignores this pattern.
+.env

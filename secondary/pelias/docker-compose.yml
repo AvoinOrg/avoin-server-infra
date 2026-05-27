@@ -1,0 +1,105 @@
+name: ${COMPOSE_PROJECT_NAME:-pelias}
+
+networks:
+  pelias-net:
+    driver: bridge
+  proxy-net:
+    external: true
+
+services:
+  elasticsearch:
+    image: pelias/elasticsearch:${PELIAS_ELASTICSEARCH_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      ES_JAVA_OPTS: ${ELASTICSEARCH_JAVA_OPTS}
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    volumes:
+      - ${DATA_PATH}/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - pelias-net
+
+  libpostal:
+    image: pelias/libpostal-service:${PELIAS_LIBPOSTAL_IMAGE_TAG}
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 5 -O - 'http://localhost:4400/parse?address=test' >/dev/null || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    networks:
+      - pelias-net
+
+  api:
+    image: pelias/api:${PELIAS_API_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      PORT: "4000"
+      PELIAS_CONFIG: /code/pelias.json
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      libpostal:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 5 -O - 'http://localhost:4000/v1' >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    volumes:
+      - ./pelias.json:/code/pelias.json:ro
+    networks:
+      - pelias-net
+      - proxy-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy-net"
+      - "traefik.http.routers.pelias.rule=Host(`${PELIAS_DOMAIN}`)"
+      - "traefik.http.routers.pelias.entrypoints=websecure"
+      - "traefik.http.routers.pelias.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
+      - "traefik.http.services.pelias.loadbalancer.server.port=4000"
+
+  schema:
+    image: pelias/schema:${PELIAS_SCHEMA_IMAGE_TAG}
+    profiles:
+      - tools
+    restart: "no"
+    command: ["npm", "run", "create_index"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./pelias.json:/code/pelias.json:ro
+    networks:
+      - pelias-net

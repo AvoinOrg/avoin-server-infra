@@ -36,7 +36,7 @@ labels:
   - "traefik.http.services.<name>.loadbalancer.server.port=<container-port>"
 ```
 
-Services in `secondary/*` follow this pattern (Directus/Umami/Tolgee). The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
+Services in `secondary/*` follow this pattern (Directus/Pelias/Umami/Tolgee). The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
 
 ### “File-based” routing (main)
 
@@ -65,6 +65,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 ### `secondary/` (non-core)
 
 - `secondary/proxy/` — Traefik (Docker provider + labels). Intended ingress for the `secondary/*` services.
+- `secondary/pelias/` — Pelias geocoding scaffold: API + Elasticsearch + libpostal. Exposed via Traefik labels on `proxy-net`; data imports are deferred to the later Pelias import/custom-data work.
 - `secondary/directus/` — Directus + Postgres. Exposed via Traefik labels on `proxy-net`.
 - `secondary/umami/` — Umami analytics + Postgres. Exposed via Traefik labels on `proxy-net` (optional `oauth2-proxy` is included but commented out).
 - `secondary/tolgee/` — Tolgee localization platform. Exposed via Traefik labels on `proxy-net`.
@@ -87,6 +88,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 
 Notes:
 - Traefik dashboard is exposed on `:8090` and is configured with `--api.insecure=true` in these stacks; restrict access with firewall rules or adjust Traefik config before exposing it publicly.
+- `secondary/pelias/` is only a geocoder deployment scaffold until Pelias data import features are added and run. Its API can start before data exists, but search results are not expected from an empty Elasticsearch index.
 - `main/log-stack/setup.sh` prepares filesystem permissions for Loki/Grafana volumes (uses `sudo`).
 
 ## Adding or changing services
@@ -99,4 +101,3 @@ When adding/removing a service directory or changing proxy/routing conventions:
   - joins `proxy-net`
   - sets `traefik.enable=true` and the router/service labels
   - exposes the correct internal port via `traefik.http.services.<name>.loadbalancer.server.port`
-

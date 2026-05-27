@@ -23,6 +23,7 @@ Triggers that require updating docs:
 - Use the shared external Docker network `proxy-net` for anything that needs to be routed via Traefik.
 - In `secondary/` and `random-services/`, public exposure is done via **Traefik labels** with `traefik.enable=true` (Traefik runs with `exposedByDefault=false`).
 - In `main/`, routing is primarily defined in `main/proxy/dynamic_conf.yml` (file provider), not by container labels.
+- For Pelias, keep downloaded source data, Elasticsearch indexes, prepared placeholder/interpolation databases, and other generated geocoding artifacts under configured ignored data paths, never in tracked repo files.
 
 ## Compose hygiene
 
@@ -32,4 +33,3 @@ When adding new stacks:
 - Add reasonable `restart:` policy and `healthcheck:` where it helps.
 - Keep persistent data paths configurable via env (`DATA_PATH`, `*_DATA_DIR`, etc.).
 - Avoid `container_name` unless there’s a strong reason (it makes running multiple stacks on one host harder).
-

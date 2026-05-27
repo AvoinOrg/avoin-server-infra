@@ -1,0 +1,84 @@
+{
+  "logger": {
+    "level": "info",
+    "timestamp": false
+  },
+  "esclient": {
+    "apiVersion": "7.17",
+    "hosts": [
+      {
+        "host": "elasticsearch",
+        "port": 9200
+      }
+    ]
+  },
+  "schema": {
+    "indexName": "pelias"
+  },
+  "elasticsearch": {
+    "settings": {
+      "index": {
+        "refresh_interval": "10s",
+        "number_of_replicas": "0",
+        "number_of_shards": "1"
+      }
+    }
+  },
+  "api": {
+    "indexName": "pelias",
+    "accessLog": "combined",
+    "exposeInternalDebugTools": false,
+    "targets": {
+      "auto_discover": true,
+      "auto_discover_required": false
+    },
+    "services": {
+      "libpostal": {
+        "url": "http://libpostal:4400",
+        "timeout": 1000,
+        "retries": 1
+      }
+    }
+  },
+  "imports": {
+    "adminLookup": {
+      "enabled": false
+    },
+    "blacklist": {
+      "files": []
+    },
+    "csv": {
+      "datapath": "/data/csv",
+      "files": [],
+      "download": []
+    },
+    "geonames": {
+      "datapath": "/data/geonames",
+      "countryCode": "ALL"
+    },
+    "openaddresses": {
+      "datapath": "/data/openaddresses",
+      "files": []
+    },
+    "openstreetmap": {
+      "datapath": "/data/openstreetmap",
+      "download": [],
+      "import": []
+    },
+    "polyline": {
+      "datapath": "/data/polylines",
+      "files": []
+    },
+    "transit": {
+      "datapath": "/data/transit",
+      "feeds": []
+    },
+    "whosonfirst": {
+      "datapath": "/data/whosonfirst",
+      "countryCode": "ALL"
+    },
+    "interpolation": {
+      "download": {}
+    }
+  }
+}

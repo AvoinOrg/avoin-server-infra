@@ -61,9 +61,12 @@
       "files": []
     },
     "openstreetmap": {
-      "datapath": "/data/openstreetmap",
+      "datapath": "/srv/pelias/openstreetmap",
+      "leveldbpath": "/srv/pelias/openstreetmap-leveldb",
       "download": [],
-      "import": []
+      "import": [],
+      "importVenues": true,
+      "removeDisusedVenues": true
     },
     "polyline": {
       "datapath": "/data/polylines",

@@ -38,6 +38,31 @@ services:
     networks:
       - pelias-net
 
+  config-render:
+    image: ${PELIAS_CONFIG_RENDER_IMAGE}
+    profiles:
+      - tools
+    restart: "no"
+    working_dir: /work
+    command: ["node", "/work/scripts/render-pelias-config.mjs"]
+    environment:
+      PELIAS_CONFIG_TEMPLATE: /work/pelias.json.template
+      PELIAS_CONFIG_DIR: ${PELIAS_CONFIG_DIR}
+      PELIAS_CONFIG_OUTPUT: ${PELIAS_CONFIG_PATH}
+      OSM_PBF_URL: ${OSM_PBF_URL}
+      OSM_PBF_FILENAME: ${OSM_PBF_FILENAME}
+      OSM_DATA_PATH: ${OSM_DATA_PATH}
+      OSM_LEVELDB_PATH: ${OSM_LEVELDB_PATH}
+      OSM_ADMIN_LOOKUP_ENABLED: ${OSM_ADMIN_LOOKUP_ENABLED}
+      OSM_IMPORT_VENUES: ${OSM_IMPORT_VENUES}
+      OSM_REMOVE_DISUSED_VENUES: ${OSM_REMOVE_DISUSED_VENUES}
+    volumes:
+      - ./pelias.json.template:/work/pelias.json.template:ro
+      - ./scripts/render-pelias-config.mjs:/work/scripts/render-pelias-config.mjs:ro
+      - ${PELIAS_CONFIG_DIR}:${PELIAS_CONFIG_DIR}
+    networks:
+      - pelias-net
+
   libpostal:
     image: pelias/libpostal-service:${PELIAS_LIBPOSTAL_IMAGE_TAG}
     restart: unless-stopped
@@ -76,7 +101,7 @@ services:
       retries: 20
       start_period: 30s
     volumes:
-      - ./pelias.json:/code/pelias.json:ro
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
     networks:
       - pelias-net
       - proxy-net
@@ -100,6 +125,68 @@ services:
       elasticsearch:
         condition: service_healthy
     volumes:
-      - ./pelias.json:/code/pelias.json:ro
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+    networks:
+      - pelias-net
+
+  schema-drop-index:
+    image: pelias/schema:${PELIAS_SCHEMA_IMAGE_TAG}
+    profiles:
+      - tools
+    restart: "no"
+    command: ["node", "scripts/drop_index.js", "--force-yes"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+    networks:
+      - pelias-net
+
+  config-check:
+    image: pelias/api:${PELIAS_API_IMAGE_TAG}
+    profiles:
+      - tools
+    restart: "no"
+    command: ["npm", "run", "config"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    volumes:
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+    networks:
+      - pelias-net
+
+  osm-download:
+    image: pelias/openstreetmap:${PELIAS_OPENSTREETMAP_IMAGE_TAG}
+    profiles:
+      - import
+    restart: "no"
+    command: ["npm", "run", "download"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    volumes:
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+      - ${OSM_DATA_PATH}:${OSM_DATA_PATH}
+      - ${OSM_LEVELDB_PATH}:${OSM_LEVELDB_PATH}
+    networks:
+      - pelias-net
+
+  osm-import:
+    image: pelias/openstreetmap:${PELIAS_OPENSTREETMAP_IMAGE_TAG}
+    profiles:
+      - import
+    restart: "no"
+    command: ["npm", "start"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+      - ${OSM_DATA_PATH}:${OSM_DATA_PATH}
+      - ${OSM_LEVELDB_PATH}:${OSM_LEVELDB_PATH}
     networks:
       - pelias-net

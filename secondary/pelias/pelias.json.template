@@ -48,7 +48,7 @@
       "files": []
     },
     "csv": {
-      "datapath": "/data/csv",
+      "datapath": "/__generated_from_PELIAS_CSV_DATA_PATH__",
       "files": [],
       "download": []
     },

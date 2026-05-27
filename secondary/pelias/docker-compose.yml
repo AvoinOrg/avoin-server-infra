@@ -56,6 +56,10 @@ services:
       OSM_ADMIN_LOOKUP_ENABLED: ${OSM_ADMIN_LOOKUP_ENABLED}
       OSM_IMPORT_VENUES: ${OSM_IMPORT_VENUES}
       OSM_REMOVE_DISUSED_VENUES: ${OSM_REMOVE_DISUSED_VENUES}
+      PELIAS_FINNISH_DATA_PATH: ${PELIAS_FINNISH_DATA_PATH}
+      PELIAS_CSV_DATA_PATH: ${PELIAS_CSV_DATA_PATH}
+      PELIAS_CSV_IMPORT_FILES: ${PELIAS_CSV_IMPORT_FILES}
+      PELIAS_CSV_DOWNLOAD_URLS: ${PELIAS_CSV_DOWNLOAD_URLS}
     volumes:
       - ./pelias.json.template:/work/pelias.json.template:ro
       - ./scripts/render-pelias-config.mjs:/work/scripts/render-pelias-config.mjs:ro
@@ -188,5 +192,22 @@ services:
       - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
       - ${OSM_DATA_PATH}:${OSM_DATA_PATH}
       - ${OSM_LEVELDB_PATH}:${OSM_LEVELDB_PATH}
+    networks:
+      - pelias-net
+
+  csv-import:
+    image: pelias/csv-importer:${PELIAS_CSV_IMPORTER_IMAGE_TAG}
+    profiles:
+      - custom-data
+    restart: "no"
+    command: ["./bin/start"]
+    environment:
+      PELIAS_CONFIG: /code/pelias.json
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ${PELIAS_CONFIG_PATH}:/code/pelias.json:ro
+      - ${PELIAS_CSV_DATA_PATH}:${PELIAS_CSV_DATA_PATH}
     networks:
       - pelias-net

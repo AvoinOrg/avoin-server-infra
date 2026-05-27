@@ -12,6 +12,7 @@
 /placeholder/
 /transit/
 /csv/
+/finnish-custom/
 *.osm.pbf
 *.osh.pbf
 *.osm.bz2
@@ -19,6 +20,15 @@
 *.sqlite
 *.sqlite3
 *.db
+*.gpkg
+*.gml
+*.geojson
+*.jsonl
+*.ndjson
+*.csv.gz
+*.json.gz
+*.gml.gz
+*.geojson.gz
 
 # Local operator environment. The root .gitignore also ignores this pattern.
 .env

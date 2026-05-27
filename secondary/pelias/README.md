@@ -12,17 +12,21 @@ Useful upstream references:
 - Pelias Docker project: <https://github.com/pelias/docker>
 - Pelias API service: <https://github.com/pelias/api>
 - Pelias OpenStreetMap importer: <https://github.com/pelias/openstreetmap>
+- Pelias CSV importer: <https://github.com/pelias/csv-importer>
 - Pelias schema tooling: <https://github.com/pelias/schema>
 - Geofabrik Finland extract: <https://download.geofabrik.de/europe/finland.html>
 
 ## Layout
 
 - `docker-compose.yml` defines the runtime services, profiled schema/config
-  tools, and profiled OpenStreetMap download/import jobs.
+  tools, profiled OpenStreetMap download/import jobs, and the profiled
+  `csv-import` job for already transformed custom data.
 - `.env.template` lists placeholder deployment variables.
 - `pelias.json.template` is the tracked source config.
 - `scripts/render-pelias-config.mjs` renders the generated Pelias config from
   environment values.
+- `FINNISH-DATA.md` documents the Finnish official-data staging convention and
+  future CSV transform/import shape.
 - `.gitignore` keeps generated Pelias data out of the repository if paths are
   pointed inside this folder.
 
@@ -51,6 +55,8 @@ Key variables:
 - `PELIAS_*_IMAGE_TAG` values are intentionally configurable. Upstream Pelias
   examples commonly use `master` for non-Elasticsearch images, but production
   operators should pin tags or digests when they need reproducible rollouts.
+  This includes `PELIAS_CSV_IMPORTER_IMAGE_TAG` for the profiled custom-data
+  import helper.
 - `ELASTICSEARCH_JAVA_OPTS` controls the Elasticsearch heap size.
 - `OSM_PBF_URL` and `OSM_PBF_FILENAME` select the OSM extract. The default is
   Geofabrik's public Finland latest PBF. If you use the Pelias downloader, the
@@ -64,9 +70,21 @@ Key variables:
   until that support is added.
 - `OSM_IMPORT_VENUES` and `OSM_REMOVE_DISUSED_VENUES` control OSM venue import
   behavior in the generated Pelias config.
+- `PELIAS_FINNISH_DATA_PATH` is the ignored root for raw NLS/Ryhti source data,
+  future transform work files, and derived Pelias CSV output.
+- `PELIAS_CSV_DATA_PATH` is the absolute path where future transform code
+  writes ready Pelias CSV files. The renderer requires it to be under
+  `PELIAS_FINNISH_DATA_PATH`.
+- `PELIAS_CSV_IMPORT_FILES` optionally limits the CSV importer to named files
+  inside `PELIAS_CSV_DATA_PATH`. Blank renders `[]`, so the importer reads all
+  `.csv` files in that directory.
+- `PELIAS_CSV_DOWNLOAD_URLS` optionally renders ready, uncompressed
+  Pelias-format CSV URLs into `imports.csv.download`. Do not use it for raw
+  provider `.gz`, GML, GeoJSON, or JSON files.
 
 Use absolute paths in the template. Compose does not recursively expand values
-inside `.env`, so do not set `OSM_DATA_PATH=${DATA_PATH}/openstreetmap`.
+inside `.env`, so do not set `OSM_DATA_PATH=${DATA_PATH}/openstreetmap` or
+`PELIAS_CSV_DATA_PATH=${PELIAS_FINNISH_DATA_PATH}/derived/pelias-csv`.
 
 ## Routing
 
@@ -78,8 +96,8 @@ docker network create proxy-net
 ```
 
 Only the API joins `proxy-net` and receives Traefik labels. Elasticsearch,
-libpostal, config helpers, schema helpers, and OSM import jobs stay on the
-private `pelias-net` network.
+libpostal, config helpers, schema helpers, OSM import jobs, and the custom CSV
+import job stay on the private `pelias-net` network.
 
 For Dokploy-style deployment, deploy from this folder, configure environment
 values in the deployment settings, and ensure the secondary Traefik proxy and
@@ -92,6 +110,8 @@ Run static Compose validation with placeholder values:
 ```bash
 docker compose --env-file .env.template config
 docker compose --env-file .env.template --profile tools --profile import config
+docker compose --env-file .env.template --profile tools --profile import \
+  --profile custom-data config
 ```
 
 Render and parse a non-secret test config locally:
@@ -108,6 +128,10 @@ OSM_LEVELDB_PATH="$tmpdir/openstreetmap-leveldb" \
 OSM_ADMIN_LOOKUP_ENABLED=false \
 OSM_IMPORT_VENUES=true \
 OSM_REMOVE_DISUSED_VENUES=true \
+PELIAS_FINNISH_DATA_PATH="$tmpdir/finnish-custom" \
+PELIAS_CSV_DATA_PATH="$tmpdir/finnish-custom/derived/pelias-csv" \
+PELIAS_CSV_IMPORT_FILES="paikannimet.csv,addresses.csv" \
+PELIAS_CSV_DOWNLOAD_URLS="" \
 node scripts/render-pelias-config.mjs
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" \
   "$tmpdir/config/pelias.json"
@@ -207,6 +231,47 @@ The OSM-only import will not have the same admin hierarchy or result quality as
 a full Pelias build with Who's on First, OpenAddresses, interpolation,
 placeholder, and PIP services.
 
+## Finnish Custom Data
+
+See [FINNISH-DATA.md](FINNISH-DATA.md) for the Finnish official-data staging
+layout and source-field notes. The intended future sources are:
+
+- NLS `Nimistö` / `Paikannimet` for named places and alternate-language place
+  names.
+- Syke Ryhti building-address data for official address strings and address
+  identifiers.
+- Ryhti building/location records, and only if needed later NLS building
+  geometry, for resolving address coordinates.
+
+This stack currently provides the generated `imports.csv` configuration and a
+profile-gated CSV importer job. It does not include NLS/Ryhti downloaders or a
+raw-source-to-Pelias-CSV converter.
+
+With the template defaults, keep raw and generated custom data under:
+
+```text
+/srv/pelias/finnish-custom/
+  source/nls/paikannimet/
+  source/ryhti/buildings/
+  source/ryhti/addresses/
+  derived/pelias-csv/
+  work/
+```
+
+After a future transformer writes ready Pelias CSV files, for example
+`${PELIAS_CSV_DATA_PATH}/paikannimet.csv` and
+`${PELIAS_CSV_DATA_PATH}/addresses.csv`, re-render the config and run:
+
+```bash
+docker compose --profile custom-data run --rm csv-import
+docker compose up -d api
+```
+
+Every final CSV row must contain WGS84 decimal `lat` and `lon`. CSV downloads
+configured through `PELIAS_CSV_DOWNLOAD_URLS` must be ready, uncompressed
+Pelias-format CSV; do not point that variable at raw NLS/Ryhti `.gz`, GML,
+GeoJSON, or provider-native JSON files.
+
 ## Refresh Or Rebuild
 
 For a clean refresh, use a destructive rebuild flow unless you have a tested
@@ -234,6 +299,10 @@ documents inside it.
   Elasticsearch heap sizing.
 - The OSM importer stores downloaded PBFs under `OSM_DATA_PATH` and temporary
   LevelDB/cache data under `OSM_LEVELDB_PATH`; both must remain outside git.
+- Raw NLS/Ryhti sources, future transform work data, and derived Pelias CSV
+  files belong under `PELIAS_FINNISH_DATA_PATH` / `PELIAS_CSV_DATA_PATH`; both
+  must remain outside git.
 - `PELIAS_CONFIG_PATH` is generated data and must remain outside git.
-- Finnish custom dataset integration is intentionally deferred to
-  `F001.3-pelias-finnish-data-extensibility`.
+- Full NLS/Ryhti downloads, source transformation, CSV import runs, OSM
+  rebuilds, and live search-quality verification are operator actions and are
+  not performed by this repo-local template.

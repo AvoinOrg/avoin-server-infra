@@ -65,7 +65,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 ### `secondary/` (non-core)
 
 - `secondary/proxy/` — Traefik (Docker provider + labels). Intended ingress for the `secondary/*` services.
-- `secondary/pelias/` — Pelias geocoding stack: API + Elasticsearch + libpostal with profiled OpenStreetMap config/download/import jobs. Only the API is exposed via Traefik labels on `proxy-net`.
+- `secondary/pelias/` — Pelias geocoding stack: API + Elasticsearch + libpostal with profiled OpenStreetMap config/download/import jobs and a documented Finnish official-data/Pelias CSV extension point. Only the API is exposed via Traefik labels on `proxy-net`.
 - `secondary/directus/` — Directus + Postgres. Exposed via Traefik labels on `proxy-net`.
 - `secondary/umami/` — Umami analytics + Postgres. Exposed via Traefik labels on `proxy-net` (optional `oauth2-proxy` is included but commented out).
 - `secondary/tolgee/` — Tolgee localization platform. Exposed via Traefik labels on `proxy-net`.
@@ -88,7 +88,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 
 Notes:
 - Traefik dashboard is exposed on `:8090` and is configured with `--api.insecure=true` in these stacks; restrict access with firewall rules or adjust Traefik config before exposing it publicly.
-- `secondary/pelias/` includes a generated-config OSM import flow. Before expecting search results, render its Pelias config, create the schema, run the profiled OSM download/import jobs, and then start or restart the API. Full imports require operator-run commands plus enough local disk, memory, and time; generated config, PBFs, importer cache data, and Elasticsearch indexes stay under configured data paths.
+- `secondary/pelias/` includes a generated-config OSM import flow and Finnish official-data staging conventions for later custom Pelias CSV imports. Before expecting search results, render its Pelias config, create the schema, run the profiled OSM download/import jobs, and then start or restart the API. Full OSM/custom imports require operator-run commands plus enough local disk, memory, and time; generated config, raw source data, derived CSV, importer cache data, and Elasticsearch indexes stay under configured ignored data paths.
 - `main/log-stack/setup.sh` prepares filesystem permissions for Loki/Grafana volumes (uses `sudo`).
 
 ## Adding or changing services

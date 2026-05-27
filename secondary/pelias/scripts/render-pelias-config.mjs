@@ -48,6 +48,35 @@ function requiredHttpUrl(name) {
   return url;
 }
 
+function optionalCommaSeparatedList(name) {
+  const raw = env[name];
+  if (!raw || raw.trim() === '') {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
+function optionalHttpUrlList(name) {
+  return optionalCommaSeparatedList(name).map((raw) => {
+    let url;
+    try {
+      url = new URL(raw);
+    } catch (error) {
+      throw new Error(`${name} contains an invalid URL: ${raw}`);
+    }
+
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error(`${name} entries must use http or https: ${raw}`);
+    }
+
+    return url.toString();
+  });
+}
+
 function assertOutputInsideConfigDir(outputPath, configDir) {
   const relative = path.relative(configDir, outputPath);
   if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
@@ -57,18 +86,30 @@ function assertOutputInsideConfigDir(outputPath, configDir) {
   }
 }
 
+function assertPathInside(childPath, parentPath, childName, parentName) {
+  const relative = path.relative(parentPath, childPath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`${childName} must point inside ${parentName} (${parentPath}): ${childPath}`);
+  }
+}
+
 const templatePath = requiredAbsolutePath('PELIAS_CONFIG_TEMPLATE');
 const configDir = requiredAbsolutePath('PELIAS_CONFIG_DIR');
 const outputPath = requiredAbsolutePath('PELIAS_CONFIG_OUTPUT');
 const osmDataPath = requiredAbsolutePath('OSM_DATA_PATH');
 const osmLeveldbPath = requiredAbsolutePath('OSM_LEVELDB_PATH');
+const finnishDataPath = requiredAbsolutePath('PELIAS_FINNISH_DATA_PATH');
+const csvDataPath = requiredAbsolutePath('PELIAS_CSV_DATA_PATH');
 const osmFilename = required('OSM_PBF_FILENAME');
 const osmSourceUrl = requiredHttpUrl('OSM_PBF_URL');
 const adminLookupEnabled = booleanFromEnv('OSM_ADMIN_LOOKUP_ENABLED');
 const importVenues = booleanFromEnv('OSM_IMPORT_VENUES');
 const removeDisusedVenues = booleanFromEnv('OSM_REMOVE_DISUSED_VENUES');
+const csvImportFiles = optionalCommaSeparatedList('PELIAS_CSV_IMPORT_FILES');
+const csvDownloadUrls = optionalHttpUrlList('PELIAS_CSV_DOWNLOAD_URLS');
 
 assertOutputInsideConfigDir(outputPath, configDir);
+assertPathInside(csvDataPath, finnishDataPath, 'PELIAS_CSV_DATA_PATH', 'PELIAS_FINNISH_DATA_PATH');
 
 const sourceFilename = path.posix.basename(osmSourceUrl.pathname);
 if (sourceFilename !== osmFilename) {
@@ -83,6 +124,13 @@ template.imports ??= {};
 template.imports.adminLookup = {
   ...(template.imports.adminLookup ?? {}),
   enabled: adminLookupEnabled,
+};
+
+template.imports.csv = {
+  ...(template.imports.csv ?? {}),
+  datapath: csvDataPath,
+  files: csvImportFiles,
+  download: csvDownloadUrls,
 };
 
 template.imports.openstreetmap = {

@@ -1,0 +1,14 @@
+{
+  "name": "avoin-map-geocoding",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Avoin Map geocoding front service for Pelias-backed address search.",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

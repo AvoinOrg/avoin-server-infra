@@ -36,7 +36,7 @@ labels:
   - "traefik.http.services.<name>.loadbalancer.server.port=<container-port>"
 ```
 
-Services in `secondary/*` follow this pattern (Directus/Pelias/Umami/Tolgee). The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
+Services in `secondary/*` follow this pattern (Avoin Map geocoding, Directus, Pelias, Umami, Tolgee). The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
 
 ### “File-based” routing (main)
 
@@ -65,6 +65,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 ### `secondary/` (non-core)
 
 - `secondary/proxy/` — Traefik (Docker provider + labels). Intended ingress for the `secondary/*` services.
+- `secondary/avoin-map-geocoding/` — Avoin Map geocoding front service. Exposes `GET /v1/search` via Traefik labels on `proxy-net`, forwards address/place queries to Pelias through `PELIAS_BASE_URL`, and returns a typed disabled response for estate-ID-shaped queries until the later estate-data adapter is added.
 - `secondary/pelias/` — Pelias geocoding stack: API + Elasticsearch + libpostal with profiled OpenStreetMap config/download/import jobs and a documented Finnish official-data/Pelias CSV extension point. Only the API is exposed via Traefik labels on `proxy-net`.
 - `secondary/directus/` — Directus + Postgres. Exposed via Traefik labels on `proxy-net`.
 - `secondary/umami/` — Umami analytics + Postgres. Exposed via Traefik labels on `proxy-net` (optional `oauth2-proxy` is included but commented out).
@@ -88,6 +89,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 
 Notes:
 - Traefik dashboard is exposed on `:8090` and is configured with `--api.insecure=true` in these stacks; restrict access with firewall rules or adjust Traefik config before exposing it publicly.
+- `secondary/avoin-map-geocoding/` is stateless in its baseline version. Configure `GEOCODING_DOMAIN`, `TRAEFIK_CERTRESOLVER`, `PELIAS_BASE_URL`, result limits, default Finland country/bbox values, timeout, and CORS origins in its `.env`; do not add estate database credentials until the scoped estate integration feature.
 - `secondary/pelias/` includes a generated-config OSM import flow and Finnish official-data staging conventions for later custom Pelias CSV imports. Before expecting search results, render its Pelias config, create the schema, run the profiled OSM download/import jobs, and then start or restart the API. Full OSM/custom imports require operator-run commands plus enough local disk, memory, and time; generated config, raw source data, derived CSV, importer cache data, and Elasticsearch indexes stay under configured ignored data paths.
 - `main/log-stack/setup.sh` prepares filesystem permissions for Loki/Grafana volumes (uses `sudo`).
 

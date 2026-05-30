@@ -25,6 +25,8 @@ Useful upstream references:
 - `pelias.json.template` is the tracked source config.
 - `scripts/render-pelias-config.mjs` renders the generated Pelias config from
   environment values.
+- `OSM-DATASET-IMPORT.md` documents the Geofabrik Finland source decision, the
+  small Helsinki PBF probe, and the production OSM import runbook.
 - `FINNISH-DATA.md` documents the Finnish official-data staging convention and
   future CSV transform/import shape.
 - `.gitignore` keeps generated Pelias data out of the repository if paths are
@@ -146,6 +148,10 @@ docker compose --profile tools run --rm config-check
 ```
 
 ## First OSM Import
+
+For the source decision, probe evidence, resource planning, cleanup, and
+rollback notes, read [OSM-DATASET-IMPORT.md](OSM-DATASET-IMPORT.md) before
+running a production import.
 
 1. Create and edit `.env`:
 

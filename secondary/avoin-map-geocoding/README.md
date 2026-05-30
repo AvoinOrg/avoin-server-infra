@@ -19,6 +19,8 @@ migration plan and any compatibility bridge.
 
 - `docker-compose.yml` defines the public API container and Traefik labels.
 - `.env.template` lists placeholder deployment variables only.
+- `ESTATE-DATA-CONTRACT.md` documents the selected Finnish estate-ID source
+  and the PostGIS import contract for the later F003/F004 estate-data work.
 - `Dockerfile` builds the dependency-free Node 22 runtime image.
 - `src/` contains request parsing, estate-ID classification, Pelias dispatch,
   GeoJSON normalization, CORS, and health routes.
@@ -55,6 +57,14 @@ Key variables:
 
 Do not add PostGIS, estate database, NLS/MML, Ryhti, or credential variables in
 this baseline service. F004 owns the future estate-data adapter.
+
+## Estate data contract
+
+See [ESTATE-DATA-CONTRACT.md](ESTATE-DATA-CONTRACT.md) for the selected NLS/MML
+`Kiinteistörekisterikartta (vektori)` source and the target PostGIS schema for
+the later sandbox estate-data load. This README's deployment boundary still
+applies: the service has no PostGIS or estate-source credentials until F004
+adds the adapter.
 
 ## Routing
 

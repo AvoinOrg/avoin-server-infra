@@ -25,12 +25,18 @@ Ryhti-derived rows. Use `layer=address` for Ryhti address points. Use
 `layer=venue` for NLS named places unless a later transformer maps a
 particular `placeType` to a better Pelias layer.
 
+For the NLS-specific source decision, API-key-safe probe commands, current
+access blocker, and Pelias CSV transform plan, see
+[NLS-NIMISTO-DATASET-IMPORT.md](NLS-NIMISTO-DATASET-IMPORT.md).
+
 ## Public References
 
 - NLS Geographic names product description:
   <https://www.maanmittauslaitos.fi/en/maps-and-spatial-data/datasets-and-interfaces/product-descriptions/geographic-names>
 - NLS `Nimistö` OGC API Features technical description:
   <https://www.maanmittauslaitos.fi/nimiston-kyselypalvelu-ogc-api/tekninen-kuvaus>
+- NLS `Nimistö` import plan for this stack:
+  [NLS-NIMISTO-DATASET-IMPORT.md](NLS-NIMISTO-DATASET-IMPORT.md)
 - NLS `Paikannimet` attributes:
   <https://www.maanmittauslaitos.fi/sites/maanmittauslaitos.fi/files/attachments/2024/11/Nimisto_OAPIF_Luokat_ja_attribuutit_Paikannimet_1.pdf>
 - NLS `Paikannimet, yksinkertaistettu` attributes:
@@ -63,6 +69,8 @@ NLS documents daily updates for the OGC API dataset and three yearly GML file
 product updates in January, May, and September. The product is NLS open data
 under CC BY 4.0 attribution terms. The open OGC API requires an API key, but
 this stack intentionally has no NLS API-key variable until a downloader exists.
+Use the NLS runbook before adding a downloader or transformer so API keys,
+probe downloads, and derived CSV stay in ignored paths.
 
 Ryhti data packages for completed buildings and their addresses are available
 as CSV and JSON files compressed with `.gz`; the Ryhti service page says the

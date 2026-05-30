@@ -29,6 +29,9 @@ Useful upstream references:
   small Helsinki PBF probe, and the production OSM import runbook.
 - `FINNISH-DATA.md` documents the Finnish official-data staging convention and
   future CSV transform/import shape.
+- `NLS-NIMISTO-DATASET-IMPORT.md` documents the NLS `Nimistö` source decision,
+  API-key-safe probe plan, current access blocker, and Pelias CSV transform
+  plan for place names.
 - `.gitignore` keeps generated Pelias data out of the repository if paths are
   pointed inside this folder.
 
@@ -240,7 +243,10 @@ placeholder, and PIP services.
 ## Finnish Custom Data
 
 See [FINNISH-DATA.md](FINNISH-DATA.md) for the Finnish official-data staging
-layout and source-field notes. The intended future sources are:
+layout and source-field notes, and
+[NLS-NIMISTO-DATASET-IMPORT.md](NLS-NIMISTO-DATASET-IMPORT.md) for the
+NLS-specific place-name source decision, API key handling, probe status, and
+CSV transform plan. The intended future sources are:
 
 - NLS `Nimistö` / `Paikannimet` for named places and alternate-language place
   names.

@@ -1,0 +1,38 @@
+name: ${COMPOSE_PROJECT_NAME:-avoin-map-geocoding}
+
+networks:
+  proxy-net:
+    external: true
+
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      GEOCODING_PORT: ${GEOCODING_PORT:-8080}
+      PELIAS_BASE_URL: ${PELIAS_BASE_URL}
+      GEOCODING_REQUEST_TIMEOUT_MS: ${GEOCODING_REQUEST_TIMEOUT_MS:-5000}
+      GEOCODING_RESULT_LIMIT_DEFAULT: ${GEOCODING_RESULT_LIMIT_DEFAULT:-5}
+      GEOCODING_RESULT_LIMIT_MAX: ${GEOCODING_RESULT_LIMIT_MAX:-10}
+      GEOCODING_DEFAULT_COUNTRYCODES: ${GEOCODING_DEFAULT_COUNTRYCODES:-fi}
+      GEOCODING_DEFAULT_BBOX: ${GEOCODING_DEFAULT_BBOX:-19,59,32,71}
+      GEOCODING_CORS_ORIGINS: ${GEOCODING_CORS_ORIGINS:-*}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 5 -O - 'http://127.0.0.1:$${GEOCODING_PORT:-8080}/healthz' >/dev/null || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - proxy-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy-net"
+      - "traefik.http.routers.avoin-map-geocoding.rule=Host(`${GEOCODING_DOMAIN}`)"
+      - "traefik.http.routers.avoin-map-geocoding.entrypoints=websecure"
+      - "traefik.http.routers.avoin-map-geocoding.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
+      - "traefik.http.services.avoin-map-geocoding.loadbalancer.server.port=${GEOCODING_PORT:-8080}"

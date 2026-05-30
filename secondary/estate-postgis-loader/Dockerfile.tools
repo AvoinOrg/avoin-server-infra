@@ -1,0 +1,13 @@
+ARG GDAL_BASE_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-3.10.3
+FROM ${GDAL_BASE_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+ENTRYPOINT ["/bin/sh"]

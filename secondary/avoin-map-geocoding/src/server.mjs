@@ -1,6 +1,17 @@
 import http from "node:http";
 import { loadConfig, ConfigError } from "./config.mjs";
-import { classifyEstateIdQuery, disabledEstateFeatureCollection } from "./estate-id.mjs";
+import {
+  classifyEstateIdQuery,
+  disabledEstateFeatureCollection,
+  estateLookupErrorFeatureCollection,
+  foundEstateFeatureCollection,
+  notFoundEstateFeatureCollection,
+} from "./estate-id.mjs";
+import {
+  createEstatePostgisLookup,
+  EstateLookupTimeoutError,
+  EstateLookupUnavailableError,
+} from "./estate-postgis.mjs";
 import { errorFeatureCollection } from "./geojson.mjs";
 import { InvalidUpstreamResponseError } from "./geojson.mjs";
 import {
@@ -92,7 +103,7 @@ function validationErrorBody(error) {
   };
 }
 
-function readinessBody(status, peliasStatus, details = {}) {
+function peliasReadiness(peliasStatus, details = {}) {
   const pelias = { status: peliasStatus };
   if (details.code) {
     pelias.code = details.code;
@@ -100,17 +111,32 @@ function readinessBody(status, peliasStatus, details = {}) {
   if (details.upstreamStatus) {
     pelias.upstream_status = details.upstreamStatus;
   }
+  return pelias;
+}
 
+function readinessBody(status, pelias, estate) {
   return {
     status,
     dependencies: {
       pelias,
-      estate: {
-        status: "disabled",
-        reason: "not_configured",
-      },
+      estate,
     },
   };
+}
+
+function disabledEstateReadiness() {
+  return {
+    status: "disabled",
+    reason: "not_configured",
+  };
+}
+
+function estateErrorCode(error) {
+  if (error instanceof EstateLookupUnavailableError || error instanceof EstateLookupTimeoutError) {
+    return error.code;
+  }
+
+  return "estate_lookup_unavailable";
 }
 
 function upstreamErrorResponse(error) {
@@ -148,9 +174,113 @@ function upstreamErrorResponse(error) {
   };
 }
 
-export function createServer({ config, fetchImpl = globalThis.fetch } = {}) {
+export function createServer({
+  config,
+  fetchImpl = globalThis.fetch,
+  estateLookup: injectedEstateLookup,
+} = {}) {
   if (!config) {
     throw new ConfigError("config is required", "config");
+  }
+
+  const estateLookup =
+    injectedEstateLookup ?? createEstatePostgisLookup(config.estateLookup ?? { enabled: false });
+
+  async function checkReadiness() {
+    let serviceStatus = "ok";
+    let httpStatus = 200;
+    let pelias;
+    let estate;
+
+    try {
+      await checkPeliasReady(config, { fetchImpl });
+      pelias = peliasReadiness("ok");
+    } catch (error) {
+      serviceStatus = "unavailable";
+      httpStatus = 503;
+      pelias = peliasReadiness("unavailable", {
+        code: error.code || "upstream_unreachable",
+        upstreamStatus: error.upstreamStatus,
+      });
+    }
+
+    if (!estateLookup.enabled) {
+      estate = disabledEstateReadiness();
+    } else {
+      try {
+        await estateLookup.checkReady();
+        estate = { status: "ok" };
+      } catch (error) {
+        serviceStatus = "unavailable";
+        httpStatus = 503;
+        estate = {
+          status: "unavailable",
+          code: estateErrorCode(error),
+        };
+      }
+    }
+
+    return {
+      status: httpStatus,
+      body: readinessBody(serviceStatus, pelias, estate),
+    };
+  }
+
+  async function handleEstateSearch(req, res, classification) {
+    if (!estateLookup.enabled) {
+      writeJson(req, res, config, 200, disabledEstateFeatureCollection(classification));
+      return;
+    }
+
+    try {
+      const result = await estateLookup.lookup(classification);
+      if (result.status === "found") {
+        writeJson(req, res, config, 200, foundEstateFeatureCollection(classification, result));
+        return;
+      }
+
+      writeJson(req, res, config, 200, notFoundEstateFeatureCollection(classification));
+    } catch (error) {
+      if (error instanceof EstateLookupTimeoutError) {
+        writeJson(
+          req,
+          res,
+          config,
+          504,
+          estateLookupErrorFeatureCollection(
+            classification,
+            "estate_lookup_timeout",
+            "Estate lookup timed out",
+            504,
+          ),
+        );
+        return;
+      }
+
+      if (error instanceof EstateLookupUnavailableError) {
+        writeJson(
+          req,
+          res,
+          config,
+          503,
+          estateLookupErrorFeatureCollection(
+            classification,
+            "estate_lookup_unavailable",
+            "Estate lookup dependency is unavailable",
+            503,
+          ),
+        );
+        return;
+      }
+
+      writeJson(
+        req,
+        res,
+        config,
+        500,
+        estateLookupErrorFeatureCollection(classification, "internal_error", "Internal server error", 500),
+      );
+    }
   }
 
   async function handleRequest(req, res) {
@@ -175,21 +305,8 @@ export function createServer({ config, fetchImpl = globalThis.fetch } = {}) {
     }
 
     if (url.pathname === "/readyz") {
-      try {
-        await checkPeliasReady(config, { fetchImpl });
-        writeJson(req, res, config, 200, readinessBody("ok", "ok"));
-      } catch (error) {
-        writeJson(
-          req,
-          res,
-          config,
-          503,
-          readinessBody("unavailable", "unavailable", {
-            code: error.code || "upstream_unreachable",
-            upstreamStatus: error.upstreamStatus,
-          }),
-        );
-      }
+      const readiness = await checkReadiness();
+      writeJson(req, res, config, readiness.status, readiness.body);
       return;
     }
 
@@ -207,7 +324,7 @@ export function createServer({ config, fetchImpl = globalThis.fetch } = {}) {
 
       const classification = classifyEstateIdQuery(parsedRequest.text);
       if (classification.isEstateId) {
-        writeJson(req, res, config, 200, disabledEstateFeatureCollection(classification));
+        await handleEstateSearch(req, res, classification);
         return;
       }
 
@@ -229,7 +346,7 @@ export function createServer({ config, fetchImpl = globalThis.fetch } = {}) {
     });
   }
 
-  return http.createServer((req, res) => {
+  const server = http.createServer((req, res) => {
     handleRequest(req, res).catch((error) => {
       if (res.headersSent) {
         res.destroy(error);
@@ -244,6 +361,12 @@ export function createServer({ config, fetchImpl = globalThis.fetch } = {}) {
       });
     });
   });
+
+  server.on("close", () => {
+    Promise.resolve(estateLookup.close?.()).catch(() => {});
+  });
+
+  return server;
 }
 
 function start() {

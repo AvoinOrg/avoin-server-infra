@@ -25,7 +25,7 @@ Triggers that require updating docs:
 - In `main/`, routing is primarily defined in `main/proxy/dynamic_conf.yml` (file provider), not by container labels.
 - For Pelias, keep downloaded source data, Elasticsearch indexes, prepared placeholder/interpolation databases, and other generated geocoding artifacts under configured ignored data paths, never in tracked repo files.
 - For Finnish estate/PostGIS work, keep NLS/MML cadastral downloads, GeoPackages, extracted files, staging data, database dumps, generated SQL output, and secret-bearing verification transcripts under configured ignored data paths, never in tracked repo files. Tracked verification reports must be sanitized and must not include credentials, private hosts, private ports, API keys, or copied secret values.
-- The Avoin Map geocoding front service lives in `secondary/avoin-map-geocoding/`. Keep it stateless unless a scoped feature says otherwise: address/place queries go to Pelias through `PELIAS_BASE_URL`, estate-ID lookup stays as a typed disabled response until the estate-data integration feature, and PostGIS/estate-data credentials must not be added early.
+- The Avoin Map geocoding front service lives in `secondary/avoin-map-geocoding/`. Keep it stateless from the application container's point of view: address/place queries go to Pelias through `PELIAS_BASE_URL`, and exact estate-ID lookup may use the optional F004 PostGIS adapter only when configured through ignored `.env` values or deployment secrets. Do not commit real PostGIS credentials, source data, generated geodata, loader transcripts, or secret-bearing verification output.
 
 ## Compose hygiene
 

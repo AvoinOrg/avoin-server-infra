@@ -1,13 +1,17 @@
 # Finnish Estate Data Source And Import Contract
 
-This document is the F003.1 handoff for loading Finnish estate-ID lookup data
-into sandbox PostGIS in F003.2. It is intentionally a source decision and data
-contract only: it does not download cadastral data, create or mutate PostGIS
-databases, publish GeoServer layers, or connect this service to PostGIS.
+This document started as the F003.1 handoff for loading Finnish estate-ID
+lookup data into sandbox PostGIS in F003.2. It is intentionally a source
+decision and data contract only: it does not download cadastral data, create or
+mutate PostGIS databases, publish GeoServer layers, or contain deployment
+secrets. The F004 runtime adapter in this service consumes the loaded
+`estate.*` tables when explicitly configured.
 
-The `secondary/avoin-map-geocoding/` service remains stateless until F004. Do
-not add PostGIS, NLS/MML, Ryhti, or estate-data credentials to its runtime
-environment in F003.1 or F003.2.
+The `secondary/avoin-map-geocoding/` service remains stateless from the
+application container's point of view. Do not add NLS/MML, Ryhti, source-data,
+or secret-bearing loader credentials to its runtime environment. Optional F004
+PostGIS lookup credentials belong only in ignored `.env` values or deployment
+secrets.
 
 ## Source Decision
 
@@ -542,7 +546,8 @@ F003.2 must resolve these before or during the load:
 ## Deferred Work
 
 - F003.2 owns the sandbox PostGIS load and measured verification results.
-- F004 owns connecting `secondary/avoin-map-geocoding/` to the loaded estate
-  data and transforming EPSG:3067 geometries into API response GeoJSON.
+- F004 owns the optional runtime adapter that connects
+  `secondary/avoin-map-geocoding/` to the loaded estate data and transforms
+  EPSG:3067 geometries into API response GeoJSON.
 - GeoServer layer publication, vector tiles, and public map styling are out of
   scope for this contract.

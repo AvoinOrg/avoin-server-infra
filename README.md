@@ -13,13 +13,13 @@ Each service lives in its own folder and is intended to be started/stopped indep
 
 ## Reverse proxy, labels, and networking
 
-All stacks assume a shared external Docker network named `proxy-net`:
+Routed service stacks assume a shared external Docker network named `proxy-net`:
 
 ```bash
 docker network create proxy-net
 ```
 
-Every top-level group (`main/`, `secondary/`, `random-services/`) has a `proxy/` stack that runs **Traefik** and binds the host’s `80`/`443` ports (and `8090` for the dashboard). Services that should be reachable from the internet attach to `proxy-net`.
+Every top-level group (`main/`, `secondary/`, `random-services/`) has a `proxy/` stack that runs **Traefik** and binds the host’s `80`/`443` ports (and `8090` for the dashboard). Services that should be reachable from the internet attach to `proxy-net`; operator-only tools that are not routed do not need it.
 
 ### “Label-based” routing (secondary + random-services)
 
@@ -36,7 +36,7 @@ labels:
   - "traefik.http.services.<name>.loadbalancer.server.port=<container-port>"
 ```
 
-Services in `secondary/*` follow this pattern (Avoin Map geocoding, Directus, Pelias, Umami, Tolgee). The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
+Public services in `secondary/*` follow this pattern (Avoin Map geocoding, Directus, Pelias, Umami, Tolgee). Operator-only tools such as `secondary/estate-postgis-loader/` are not routed and do not join `proxy-net`. The `random-services/` proxy is meant for containers from *other* repos: as long as they join `proxy-net` and set Traefik labels, they can be served by this proxy.
 
 ### “File-based” routing (main)
 
@@ -67,6 +67,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 - `secondary/proxy/` — Traefik (Docker provider + labels). Intended ingress for the `secondary/*` services.
 - `secondary/avoin-map-geocoding/` — Avoin Map geocoding front service. Exposes `GET /v1/search` via Traefik labels on `proxy-net`, forwards address/place queries to Pelias through `PELIAS_BASE_URL`, and returns a typed disabled response for estate-ID-shaped queries until the later estate-data adapter is added.
 - `secondary/pelias/` — Pelias geocoding stack: API + Elasticsearch + libpostal with profiled OpenStreetMap config/download/import jobs and a documented Finnish official-data/Pelias CSV extension point. Only the API is exposed via Traefik labels on `proxy-net`.
+- `secondary/estate-postgis-loader/` — Operator-only loader for NLS/MML Finnish cadastral estate-ID data into the sandbox PostGIS database `geocoding-finland`. It is not public, has no Traefik labels, exposes no ports, and uses operator-provided source packages plus sandbox credentials from ignored local environment values.
 - `secondary/directus/` — Directus + Postgres. Exposed via Traefik labels on `proxy-net`.
 - `secondary/umami/` — Umami analytics + Postgres. Exposed via Traefik labels on `proxy-net` (optional `oauth2-proxy` is included but commented out).
 - `secondary/tolgee/` — Tolgee localization platform. Exposed via Traefik labels on `proxy-net`.
@@ -91,6 +92,7 @@ Notes:
 - Traefik dashboard is exposed on `:8090` and is configured with `--api.insecure=true` in these stacks; restrict access with firewall rules or adjust Traefik config before exposing it publicly.
 - `secondary/avoin-map-geocoding/` is stateless in its baseline version. Configure `GEOCODING_DOMAIN`, `TRAEFIK_CERTRESOLVER`, `PELIAS_BASE_URL`, result limits, default Finland country/bbox values, timeout, and CORS origins in its `.env`; do not add estate database credentials until the scoped estate integration feature.
 - `secondary/pelias/` includes a generated-config OSM import flow and Finnish official-data staging conventions for later custom Pelias CSV imports. Before expecting search results, render its Pelias config, create the schema, run the profiled OSM download/import jobs, and then start or restart the API. Full OSM/custom imports require operator-run commands plus enough local disk, memory, and time; generated config, raw source data, derived CSV, importer cache data, and Elasticsearch indexes stay under configured ignored data paths.
+- `secondary/estate-postgis-loader/` should be validated with `.env.template` only. Real imports use an ignored `.env` or operator secret-channel environment values, plus an operator-staged NLS/MML GeoPackage under the configured ignored `ESTATE_DATA_PATH`.
 - `main/log-stack/setup.sh` prepares filesystem permissions for Loki/Grafana volumes (uses `sudo`).
 
 ## Adding or changing services

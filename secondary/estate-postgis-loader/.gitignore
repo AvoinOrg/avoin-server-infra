@@ -1,0 +1,32 @@
+.env
+
+# Optional local data roots if an operator points ESTATE_DATA_PATH here.
+/data/
+/source/
+/work/
+/reports/
+/tmp/
+
+# NLS/source geodata and generated artifacts.
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.gml
+*.geojson
+*.jsonl
+*.ndjson
+*.csv
+*.tsv
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.sqlite
+*.dump
+*.backup
+*.log
+*.out

@@ -1,0 +1,92 @@
+name: ${COMPOSE_PROJECT_NAME:-estate-postgis-loader}
+
+x-loader-environment: &loader-environment
+  PGCONNECT_TIMEOUT: ${PGCONNECT_TIMEOUT}
+  POSTGIS_HOST: ${POSTGIS_HOST}
+  POSTGIS_PORT: ${POSTGIS_PORT}
+  POSTGIS_ADMIN_DB: ${POSTGIS_ADMIN_DB}
+  POSTGIS_DB: ${POSTGIS_DB}
+  POSTGIS_USER: ${POSTGIS_USER}
+  POSTGIS_PASSWORD: ${POSTGIS_PASSWORD}
+  PGPASSWORD: ${POSTGIS_PASSWORD}
+  ESTATE_LOADER_CONFIRM_DB: ${ESTATE_LOADER_CONFIRM_DB}
+  SOURCE_FILE: ${SOURCE_FILE}
+  SOURCE_FORMAT: ${SOURCE_FORMAT}
+  SOURCE_CRS: ${SOURCE_CRS}
+  SOURCE_PARCEL_LAYER: ${SOURCE_PARCEL_LAYER}
+  SOURCE_ESTATE_ID_FIELD: ${SOURCE_ESTATE_ID_FIELD}
+  SOURCE_ESTATE_DISPLAY_FIELD: ${SOURCE_ESTATE_DISPLAY_FIELD}
+  SOURCE_FEATURE_ID_FIELD: ${SOURCE_FEATURE_ID_FIELD}
+  SOURCE_FILENAME: ${SOURCE_FILENAME}
+  SOURCE_FILE_SIZE_BYTES: ${SOURCE_FILE_SIZE_BYTES}
+  SOURCE_SHA256: ${SOURCE_SHA256}
+  SOURCE_JOB_ID: ${SOURCE_JOB_ID}
+  SOURCE_RETRIEVED_AT: ${SOURCE_RETRIEVED_AT}
+  NLS_DELIVERY_OR_ORDER_TIME: ${NLS_DELIVERY_OR_ORDER_TIME}
+  SOURCE_REGISTRY_STATE_DATE: ${SOURCE_REGISTRY_STATE_DATE}
+  SOURCE_REGISTRY_STATE_CURRENT: ${SOURCE_REGISTRY_STATE_CURRENT}
+  SOURCE_PROVIDER: ${SOURCE_PROVIDER}
+  SOURCE_DATASET_NAME: ${SOURCE_DATASET_NAME}
+  SOURCE_PRODUCT_URL: ${SOURCE_PRODUCT_URL}
+  SOURCE_LICENSE: ${SOURCE_LICENSE}
+  SOURCE_ATTRIBUTION: ${SOURCE_ATTRIBUTION}
+  SOURCE_ACQUISITION_METHOD: ${SOURCE_ACQUISITION_METHOD}
+  VERIFY_OUTPUT_PATH: ${VERIFY_OUTPUT_PATH}
+
+x-loader-volumes: &loader-volumes
+  - ./scripts:/work/scripts:ro
+  - ./sql:/work/sql:ro
+  - ${ESTATE_DATA_PATH}:/data
+
+services:
+  inspect-source:
+    image: ${ESTATE_TOOLS_IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+      args:
+        GDAL_BASE_IMAGE: ${GDAL_BASE_IMAGE}
+    profiles:
+      - tools
+    restart: "no"
+    working_dir: /work
+    command: ["scripts/inspect-source.sh"]
+    environment: *loader-environment
+    volumes: *loader-volumes
+
+  prepare-database:
+    image: ${POSTGRES_CLIENT_IMAGE}
+    profiles:
+      - tools
+    restart: "no"
+    working_dir: /work
+    entrypoint: ["/bin/sh"]
+    command: ["scripts/prepare-database.sh"]
+    environment: *loader-environment
+    volumes: *loader-volumes
+
+  import-estates:
+    image: ${ESTATE_TOOLS_IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+      args:
+        GDAL_BASE_IMAGE: ${GDAL_BASE_IMAGE}
+    profiles:
+      - tools
+    restart: "no"
+    working_dir: /work
+    command: ["scripts/import-estates.sh"]
+    environment: *loader-environment
+    volumes: *loader-volumes
+
+  verify-estates:
+    image: ${POSTGRES_CLIENT_IMAGE}
+    profiles:
+      - tools
+    restart: "no"
+    working_dir: /work
+    entrypoint: ["/bin/sh"]
+    command: ["scripts/verify-estates.sh"]
+    environment: *loader-environment
+    volumes: *loader-volumes

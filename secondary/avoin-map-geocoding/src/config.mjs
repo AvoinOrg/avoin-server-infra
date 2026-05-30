@@ -15,6 +15,9 @@ const DEFAULTS = Object.freeze({
   defaultCountrycodes: "fi",
   defaultBbox: "19,59,32,71",
   corsOrigins: "*",
+  estateLookupEnabled: false,
+  estateExpectedDatabase: "geocoding-finland",
+  estateLookupDataset: "nls_cadastral_estates",
 });
 
 function requiredString(env, name) {
@@ -25,10 +28,7 @@ function requiredString(env, name) {
   return value.trim();
 }
 
-function parseInteger(env, name, defaultValue, { min, max }) {
-  const rawValue = env[name];
-  const value = rawValue == null || rawValue === "" ? String(defaultValue) : String(rawValue).trim();
-
+function parseIntegerValue(value, name, { min, max }) {
   if (!/^\d+$/.test(value)) {
     throw new ConfigError(`${name} must be an integer`, name);
   }
@@ -39,6 +39,43 @@ function parseInteger(env, name, defaultValue, { min, max }) {
   }
 
   return parsed;
+}
+
+function parseInteger(env, name, defaultValue, options) {
+  const rawValue = env[name];
+  const value = rawValue == null || rawValue === "" ? String(defaultValue) : String(rawValue).trim();
+  return parseIntegerValue(value, name, options);
+}
+
+function parseRequiredInteger(env, name, options) {
+  return parseIntegerValue(requiredString(env, name), name, options);
+}
+
+function parseBooleanValue(value, name) {
+  switch (value.trim().toLowerCase()) {
+    case "1":
+    case "true":
+    case "yes":
+      return true;
+    case "0":
+    case "false":
+    case "no":
+      return false;
+    default:
+      throw new ConfigError(`${name} must be true or false`, name);
+  }
+}
+
+function parseBoolean(env, name, defaultValue) {
+  const rawValue = env[name];
+  if (rawValue == null || rawValue === "") {
+    return defaultValue;
+  }
+  return parseBooleanValue(String(rawValue), name);
+}
+
+function parseRequiredBoolean(env, name) {
+  return parseBooleanValue(requiredString(env, name), name);
 }
 
 function parsePeliasBaseUrl(value) {
@@ -120,6 +157,51 @@ function parseCorsOrigins(value) {
   return { wildcard: false, origins };
 }
 
+function parseEstateLookupConfig(env) {
+  const enabled = parseBoolean(env, "ESTATE_LOOKUP_ENABLED", DEFAULTS.estateLookupEnabled);
+  const baseConfig = {
+    enabled,
+    expectedDatabase: DEFAULTS.estateExpectedDatabase,
+    lookupDataset: DEFAULTS.estateLookupDataset,
+  };
+
+  if (!enabled) {
+    return Object.freeze({
+      ...baseConfig,
+      postgis: null,
+    });
+  }
+
+  const database = requiredString(env, "ESTATE_POSTGIS_DATABASE");
+  if (database !== DEFAULTS.estateExpectedDatabase) {
+    throw new ConfigError(
+      `ESTATE_POSTGIS_DATABASE must be ${DEFAULTS.estateExpectedDatabase}`,
+      "ESTATE_POSTGIS_DATABASE",
+    );
+  }
+
+  return Object.freeze({
+    ...baseConfig,
+    postgis: Object.freeze({
+      host: requiredString(env, "ESTATE_POSTGIS_HOST"),
+      port: parseRequiredInteger(env, "ESTATE_POSTGIS_PORT", { min: 1, max: 65535 }),
+      database,
+      user: requiredString(env, "ESTATE_POSTGIS_USER"),
+      password: requiredString(env, "ESTATE_POSTGIS_PASSWORD"),
+      ssl: parseRequiredBoolean(env, "ESTATE_POSTGIS_SSL"),
+      connectTimeoutMs: parseRequiredInteger(env, "ESTATE_POSTGIS_CONNECT_TIMEOUT_MS", {
+        min: 1,
+        max: 60000,
+      }),
+      queryTimeoutMs: parseRequiredInteger(env, "ESTATE_POSTGIS_QUERY_TIMEOUT_MS", {
+        min: 1,
+        max: 600000,
+      }),
+      poolMax: parseRequiredInteger(env, "ESTATE_POSTGIS_POOL_MAX", { min: 1, max: 50 }),
+    }),
+  });
+}
+
 export function loadConfig(env = process.env) {
   const resultLimitMax = parseInteger(env, "GEOCODING_RESULT_LIMIT_MAX", DEFAULTS.resultLimitMax, {
     min: 1,
@@ -146,5 +228,6 @@ export function loadConfig(env = process.env) {
     ),
     defaultBbox: parseBbox(env.GEOCODING_DEFAULT_BBOX ?? DEFAULTS.defaultBbox),
     corsOrigins: parseCorsOrigins(env.GEOCODING_CORS_ORIGINS ?? DEFAULTS.corsOrigins),
+    estateLookup: parseEstateLookupConfig(env),
   });
 }

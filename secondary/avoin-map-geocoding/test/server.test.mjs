@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import test from "node:test";
+import { EstateLookupTimeoutError, EstateLookupUnavailableError } from "../src/estate-postgis.mjs";
 import { createServer } from "../src/server.mjs";
 
 function configForPelias(peliasBaseUrl, overrides = {}) {
@@ -63,14 +64,67 @@ async function withFakePelias(handler, callback) {
   }
 }
 
-async function withGeocodingServer(config, callback) {
-  const server = createServer({ config });
+async function withGeocodingServer(config, callback, options = {}) {
+  const server = createServer({ config, ...options });
   const baseUrl = await listen(server);
   try {
     await callback(baseUrl);
   } finally {
     await close(server);
   }
+}
+
+function fakeEstateLookup({ enabled = true, readyError = null, lookupResult = null, lookupError = null } = {}) {
+  const calls = {
+    ready: 0,
+    lookup: [],
+    close: 0,
+  };
+  const adapter = {
+    enabled,
+    async checkReady() {
+      calls.ready += 1;
+      if (readyError) {
+        throw readyError;
+      }
+      return { status: "ok" };
+    },
+    async lookup(classification) {
+      calls.lookup.push(classification);
+      if (lookupError) {
+        throw lookupError;
+      }
+      return lookupResult ?? { status: "not_found" };
+    },
+    async close() {
+      calls.close += 1;
+    },
+  };
+
+  return { adapter, calls };
+}
+
+function estateLookupResult(overrides = {}) {
+  return {
+    status: "found",
+    lookupDataset: "nls_cadastral_estates",
+    item: {
+      estateIdCompact: "17440100030006",
+      estateIdNormalized: "174-401-3-6",
+      estateIdDisplay: "174-401-3-6",
+      municipalityCode: "174",
+      partCount: 2,
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: [[[[24, 60], [24.1, 60], [24.1, 60.1], [24, 60.1], [24, 60]]]],
+      },
+      bbox: [24, 60, 24.1, 60.1],
+      sourceFreshnessAt: "2026-01-01T00:00:00.000Z",
+      loadedAt: "2026-01-02T00:00:00.000Z",
+      partLookup: false,
+      ...overrides,
+    },
+  };
 }
 
 test("healthz is independent of Pelias", async () => {
@@ -99,6 +153,60 @@ test("readyz reports Pelias readiness and disabled estate lookup", async () => {
       assert.equal(body.dependencies.pelias.status, "ok");
       assert.equal(body.dependencies.estate.status, "disabled");
     });
+  });
+});
+
+test("readyz reports enabled estate lookup readiness", async () => {
+  await withFakePelias((req, res) => {
+    if (req.url === "/v1") {
+      jsonResponse(res, 200, { status: "ok" });
+      return;
+    }
+    jsonResponse(res, 404, {});
+  }, async ({ baseUrl: peliasBaseUrl }) => {
+    const estate = fakeEstateLookup();
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/readyz`);
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(body.status, "ok");
+        assert.equal(body.dependencies.pelias.status, "ok");
+        assert.equal(body.dependencies.estate.status, "ok");
+        assert.equal(estate.calls.ready, 1);
+      },
+      { estateLookup: estate.adapter },
+    );
+  });
+});
+
+test("readyz returns 503 when enabled estate lookup is unavailable", async () => {
+  await withFakePelias((req, res) => {
+    if (req.url === "/v1") {
+      jsonResponse(res, 200, { status: "ok" });
+      return;
+    }
+    jsonResponse(res, 404, {});
+  }, async ({ baseUrl: peliasBaseUrl }) => {
+    const estate = fakeEstateLookup({
+      readyError: new EstateLookupUnavailableError("estate_data_unavailable"),
+    });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/readyz`);
+        const body = await response.json();
+
+        assert.equal(response.status, 503);
+        assert.equal(body.status, "unavailable");
+        assert.equal(body.dependencies.pelias.status, "ok");
+        assert.equal(body.dependencies.estate.status, "unavailable");
+        assert.equal(body.dependencies.estate.code, "estate_data_unavailable");
+      },
+      { estateLookup: estate.adapter },
+    );
   });
 });
 
@@ -141,6 +249,7 @@ test("non-estate search dispatches to Pelias and normalizes FeatureCollection", 
       ],
     });
   }, async ({ baseUrl: peliasBaseUrl, calls }) => {
+    const estate = fakeEstateLookup();
     await withGeocodingServer(configForPelias(peliasBaseUrl), async (baseUrl) => {
       const response = await fetch(
         `${baseUrl}/v1/search?text=Helsinki&limit=1&bbox=20,60,25,62&focus.point.lat=61&focus.point.lon=24&sources=openstreetmap&layers=locality`,
@@ -165,7 +274,8 @@ test("non-estate search dispatches to Pelias and normalizes FeatureCollection", 
       assert.equal(body.features[0].properties.avoin.query_type, "address");
       assert.deepEqual(body.bbox, [24, 60, 25, 61]);
       assert.deepEqual(body.geocoding, { version: "0.2" });
-    });
+      assert.equal(estate.calls.lookup.length, 0);
+    }, { estateLookup: estate.adapter });
   });
 });
 
@@ -204,6 +314,123 @@ test("estate-shaped searches return disabled response without calling Pelias", a
       assert.equal(body.avoin.normalized_estate_id, "092-58-552-21");
       assert.equal(body.avoin.part_number, 2);
     });
+  });
+});
+
+test("enabled estate search returns found GeoJSON without calling Pelias", async () => {
+  await withFakePelias((_req, res) => {
+    jsonResponse(res, 500, { error: "should not be called" });
+  }, async ({ baseUrl: peliasBaseUrl, calls }) => {
+    const estate = fakeEstateLookup({ lookupResult: estateLookupResult() });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/v1/search?text=174-401-3-6`);
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(calls.length, 0);
+        assert.equal(estate.calls.lookup.length, 1);
+        assert.equal(body.type, "FeatureCollection");
+        assert.equal(body.features.length, 1);
+        assert.deepEqual(body.bbox, [24, 60, 24.1, 60.1]);
+        assert.equal(body.avoin.query_type, "estate_id");
+        assert.equal(body.avoin.estate_lookup.enabled, true);
+        assert.equal(body.avoin.estate_lookup.status, "found");
+        assert.equal(body.avoin.normalized_estate_id, "174-401-3-6");
+        assert.equal(body.features[0].geometry.type, "MultiPolygon");
+        assert.equal(body.features[0].geometry.crs, undefined);
+        assert.equal(body.features[0].properties.estate_id_compact, "17440100030006");
+        assert.equal(body.features[0].properties.part_count, 2);
+        assert.equal(body.features[0].properties.avoin.query_type, "estate_id");
+        assert.equal(body.features[0].properties.avoin.lookup_dataset, "nls_cadastral_estates");
+      },
+      { estateLookup: estate.adapter },
+    );
+  });
+});
+
+test("enabled part estate search marks part metadata", async () => {
+  await withFakePelias((_req, res) => {
+    jsonResponse(res, 500, { error: "should not be called" });
+  }, async ({ baseUrl: peliasBaseUrl, calls }) => {
+    const estate = fakeEstateLookup({
+      lookupResult: estateLookupResult({ partLookup: true, partNumber: 2 }),
+    });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/v1/search?text=174-401-3-6%20%232`);
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(calls.length, 0);
+        assert.equal(body.avoin.part_number, 2);
+        assert.equal(body.features[0].properties.part_number, 2);
+        assert.equal(body.features[0].properties.part_lookup, true);
+      },
+      { estateLookup: estate.adapter },
+    );
+  });
+});
+
+test("enabled estate search reports healthy not found without calling Pelias", async () => {
+  await withFakePelias((_req, res) => {
+    jsonResponse(res, 500, { error: "should not be called" });
+  }, async ({ baseUrl: peliasBaseUrl, calls }) => {
+    const estate = fakeEstateLookup({ lookupResult: { status: "not_found" } });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/v1/search?text=174-401-3-6%20%237`);
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(calls.length, 0);
+        assert.deepEqual(body.features, []);
+        assert.equal(body.avoin.estate_lookup.status, "not_found");
+        assert.equal(body.avoin.part_number, 7);
+      },
+      { estateLookup: estate.adapter },
+    );
+  });
+});
+
+test("enabled estate search maps unavailable and timeout failures", async () => {
+  await withFakePelias((_req, res) => {
+    jsonResponse(res, 500, { error: "should not be called" });
+  }, async ({ baseUrl: peliasBaseUrl, calls }) => {
+    const unavailable = fakeEstateLookup({
+      lookupError: new EstateLookupUnavailableError("estate_schema_missing"),
+    });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/v1/search?text=174-401-3-6`);
+        const body = await response.json();
+
+        assert.equal(response.status, 503);
+        assert.equal(body.avoin.error.code, "estate_lookup_unavailable");
+        assert.equal(body.avoin.estate_lookup.status, "unavailable");
+      },
+      { estateLookup: unavailable.adapter },
+    );
+
+    const timedOut = fakeEstateLookup({ lookupError: new EstateLookupTimeoutError() });
+    await withGeocodingServer(
+      configForPelias(peliasBaseUrl),
+      async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/v1/search?text=174-401-3-6`);
+        const body = await response.json();
+
+        assert.equal(response.status, 504);
+        assert.equal(body.avoin.error.code, "estate_lookup_timeout");
+        assert.equal(body.avoin.estate_lookup.status, "timeout");
+      },
+      { estateLookup: timedOut.adapter },
+    );
+
+    assert.equal(calls.length, 0);
   });
 });
 

@@ -25,8 +25,8 @@ Ryhti-derived rows. Use `layer=address` for Ryhti address points. Use
 `layer=venue` for NLS named places unless a later transformer maps a
 particular `placeType` to a better Pelias layer.
 
-For the NLS-specific source decision, API-key-safe probe commands, current
-access blocker, and Pelias CSV transform plan, see
+For the NLS-specific source decision, API-key-safe probe commands, key-backed
+probe result, and Pelias CSV transform plan, see
 [NLS-NIMISTO-DATASET-IMPORT.md](NLS-NIMISTO-DATASET-IMPORT.md).
 
 ## Public References

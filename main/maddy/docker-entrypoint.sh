@@ -19,7 +19,11 @@ require_env MADDY_SES_USERNAME
 require_env MADDY_SES_PASSWORD
 
 mkdir -p /data/auth
-hash="$(printf '%s' "$MADDY_SMTP_PASSWORD" | maddy hash 2>/dev/null)"
+hash="$(maddy hash --hash argon2 --password "$MADDY_SMTP_PASSWORD" 2>/dev/null)"
+if [ -z "$hash" ]; then
+  echo "Failed to generate maddy SMTP password hash" >&2
+  exit 1
+fi
 printf '%s: %s\n' "$MADDY_SMTP_USER" "$hash" > /data/auth/smtp_passwd
 chmod 600 /data/auth/smtp_passwd
 unset MADDY_SMTP_PASSWORD

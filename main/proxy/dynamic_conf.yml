@@ -41,6 +41,15 @@ http:
         domains:
           - main: "{{env "STORAGE_DOMAIN"}}"
         certResolver: myresolver
+    smtp-cert:
+      rule: "Host(`{{env "SMTP_DOMAIN"}}`) || Host(`{{env "MAIL_DOMAIN"}}`)"
+      service: noop@internal
+      tls:
+        domains:
+          - main: "{{env "SMTP_DOMAIN"}}"
+            sans:
+              - "{{env "MAIL_DOMAIN"}}"
+        certResolver: myresolver
     
     # grafana:
     #   rule: "Host(`{{env "DOMAIN"}}`) && PathPrefix(`/grafana`)"

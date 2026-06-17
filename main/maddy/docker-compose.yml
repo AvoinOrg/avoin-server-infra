@@ -1,0 +1,43 @@
+services:
+  certs-dumper:
+    image: ldez/traefik-certs-dumper:latest
+    container_name: maddy-certs-dumper
+    command:
+      - file
+      - --watch
+      - --source=/acme.json
+      - --dest=/certs
+      - --version=v3
+      - --domain-subdir
+      - --crt-ext=.pem
+      - --key-ext=.pem
+      - --crt-name=certificate
+      - --key-name=privatekey
+    volumes:
+      - ../proxy/letsencrypt/acme.json:/acme.json:ro
+      - ./certs:/certs
+    restart: unless-stopped
+
+  maddy:
+    image: foxcpp/maddy:0.8
+    container_name: maddy-smtp-proxy
+    env_file:
+      - ./.env
+    entrypoint: ["/bin/sh", "/usr/local/bin/maddy-entrypoint"]
+    ports:
+      - "${MADDY_SUBMISSION_PORT:-587}:587"
+      - "${MADDY_SMTPS_PORT:-465}:465"
+    volumes:
+      - ./data:/data
+      - ./certs:/certs:ro
+      - ./maddy.conf:/etc/maddy/maddy.conf:ro
+      - ./docker-entrypoint.sh:/usr/local/bin/maddy-entrypoint:ro
+    depends_on:
+      - certs-dumper
+    networks:
+      - proxy-net
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    external: true

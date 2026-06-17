@@ -61,6 +61,10 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 - `main/auth/` — Zitadel + Postgres + a small Node “actionserver” for Zitadel Actions. Attaches to `proxy-net` so `main/proxy` can reach it.
 - `main/storage/` — Supabase Storage API + Postgres metadata DB + `imgproxy` for transformations. Attaches to `proxy-net` so `main/proxy` can reach it.
 - `main/log-stack/` — Loki + Grafana (Promtail config included; Promtail service currently commented). Attaches to `proxy-net`.
+- `main/maddy/` — Maddy SMTP submission proxy. Exposes ports `587` and `465`
+  directly on the host, authenticates local SMTP clients, and relays messages
+  to AWS SES. Uses the primary Traefik ACME store for the `smtp.example.org`
+  certificate via `traefik-certs-dumper`.
 
 ### `secondary/` (non-core)
 

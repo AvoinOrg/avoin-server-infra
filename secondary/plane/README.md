@@ -27,14 +27,14 @@ admin email and a generated password.
 
 ## Email
 
-Plane outgoing SMTP is configured from `/god-mode` after instance setup, not from
-the Compose environment. Use the Avoin SES SMTP submission proxy credentials from
-the operator secret store:
+Plane outgoing SMTP is configured through the Compose environment and can later
+be adjusted from `/god-mode` after instance setup. Live Dokploy values should use
+the Avoin SES SMTP submission proxy:
 
-- Host: the Avoin SMTP submission proxy host
+- Host: `smtp.avoin.org`
 - Port: `587`
 - Security: STARTTLS/TLS
-- Sender: for example `Plane <plane@avoin.org>`
+- Sender: `plane@avoin.org`
 - Username/password: the SMTP proxy client credentials
 
 ## Zitadel OIDC

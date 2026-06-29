@@ -237,14 +237,7 @@ services:
       - ${DATA_PATH:?set DATA_PATH}/proxy/data:/data
     networks:
       - plane-net
-      - proxy-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=proxy-net"
-      - "traefik.http.routers.plane.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.plane.entrypoints=websecure"
-      - "traefik.http.routers.plane.tls.certresolver=${TRAEFIK_CERTRESOLVER:-myresolver}"
-      - "traefik.http.services.plane.loadbalancer.server.port=80"
+      - dokploy-network
     depends_on:
       - web
       - api
@@ -255,5 +248,5 @@ services:
 networks:
   plane-net:
     driver: bridge
-  proxy-net:
+  dokploy-network:
     external: true

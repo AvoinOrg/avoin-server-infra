@@ -5,7 +5,7 @@ Plane is a self-hosted project management board/tracker exposed at
 
 This stack is based on Plane `v1.3.1` release assets. It keeps Plane's internal
 `plane-proxy` service for the app/API/live/admin route fanout, then exposes that
-proxy through the shared `secondary/proxy` Traefik instance on `proxy:80`.
+proxy through Dokploy's domain routing on `proxy:80`.
 
 ## Dokploy
 
@@ -14,7 +14,7 @@ proxy through the shared `secondary/proxy` Traefik instance on `proxy:80`.
 - Domain: `plane.avoin.org`
 - Service: `proxy`
 - Port: `80`
-- Certificate: Let's Encrypt via the existing `myresolver` Traefik resolver
+- Certificate: Let's Encrypt via Dokploy
 
 Use `secondary/plane/.env.template` as the tracked shape for Dokploy
 environment values. Real values live in Dokploy and must not be committed.

@@ -60,6 +60,7 @@ KAN_BASE_URL=https://kan.avoin.org KAN_API_TOKEN=<api-key> npx -y @kan/mcp
 
 ## Storage
 
-S3/MinIO file storage is optional. It is intentionally left unset until a public
-storage domain is chosen. The Kan health endpoint reports storage as
-`not_configured` when these variables are empty.
+S3/MinIO file storage is optional. It is intentionally omitted from the compose
+environment until a public storage domain is chosen. Do not pass blank
+`NEXT_PUBLIC_STORAGE_URL`; Kan validates it as a URL when present. Without S3,
+the Kan health endpoint reports storage as `not_configured`.

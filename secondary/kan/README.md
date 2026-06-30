@@ -44,10 +44,10 @@ Then set these Dokploy variables:
 Keep `openid profile email` enabled in Zitadel and ensure the userinfo response
 contains the user's email.
 
-Password credentials are disabled by default (`NEXT_PUBLIC_ALLOW_CREDENTIALS=false`).
-Keep `NEXT_PUBLIC_DISABLE_SIGN_UP=false` so Zitadel-backed users can be created
-on first SSO login; `BETTER_AUTH_ALLOWED_DOMAINS=avoin.org` limits new users to
-Avoin email addresses.
+Password credentials and public signup are disabled by default
+(`NEXT_PUBLIC_ALLOW_CREDENTIALS=false`, `NEXT_PUBLIC_DISABLE_SIGN_UP=true`).
+New users must be invited from an existing Kan workspace; invite signups are
+still allowed by Kan's auth hook.
 
 ## API And Agents
 

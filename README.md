@@ -75,7 +75,7 @@ Most services use Docker’s restart policies (`restart: unless-stopped` / `rest
 - `secondary/directus/` — Directus + Postgres. Exposed via Traefik labels on `proxy-net`.
 - `secondary/umami/` — Umami analytics + Postgres. Exposed via Traefik labels on `proxy-net` (optional `oauth2-proxy` is included but commented out).
 - `secondary/tolgee/` — Tolgee localization platform. Exposed via Traefik labels on `proxy-net`.
-- `secondary/plane/` — Plane project management board/tracker. Exposed via the Plane internal `proxy` service through Dokploy's domain routing; first-run admin, SMTP, and OIDC are completed in Plane `/god-mode`.
+- `secondary/kan/` — Kan AGPLv3 Trello-like board/tracker. Exposed through Dokploy's domain routing; SMTP, Zitadel OIDC, REST API, and MCP support are configured with Dokploy environment values.
 
 ### `random-services/`
 

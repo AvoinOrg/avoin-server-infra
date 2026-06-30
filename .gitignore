@@ -1,4 +1,6 @@
 **/*.env
+main/storage/s3.json
+main/storage/volumes/
 
 logs
 certbot

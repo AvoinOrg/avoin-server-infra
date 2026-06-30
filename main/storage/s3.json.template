@@ -1,0 +1,33 @@
+{
+  "identities": [
+    {
+      "name": "storage-admin",
+      "credentials": [
+        {
+          "accessKey": "replace-with-admin-access-key",
+          "secretKey": "replace-with-admin-secret-key"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "List",
+        "Tagging",
+        "Write"
+      ]
+    },
+    {
+      "name": "geoserver-hiilikartta-readonly",
+      "credentials": [
+        {
+          "accessKey": "replace-with-hiilikartta-access-key",
+          "secretKey": "replace-with-hiilikartta-secret-key"
+        }
+      ],
+      "actions": [
+        "Read:hiilikartta",
+        "List:hiilikartta"
+      ]
+    }
+  ]
+}

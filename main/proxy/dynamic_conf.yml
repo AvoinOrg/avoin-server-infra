@@ -41,6 +41,22 @@ http:
         domains:
           - main: "{{env "STORAGE_DOMAIN"}}"
         certResolver: myresolver
+    storage-object-public:
+      rule: "Host(`{{env "STORAGE_DOMAIN"}}`) && PathPrefix(`/object/public/`)"
+      priority: 100
+      service: storage-image-server
+      tls:
+        domains:
+          - main: "{{env "STORAGE_DOMAIN"}}"
+        certResolver: myresolver
+    storage-render-image:
+      rule: "Host(`{{env "STORAGE_DOMAIN"}}`) && PathPrefix(`/render/image/public/`)"
+      priority: 100
+      service: storage-image-server
+      tls:
+        domains:
+          - main: "{{env "STORAGE_DOMAIN"}}"
+        certResolver: myresolver
     smtp-cert:
       rule: "Host(`{{env "SMTP_DOMAIN"}}`) || Host(`{{env "MAIL_DOMAIN"}}`)"
       service: noop@internal
@@ -94,6 +110,10 @@ http:
       loadBalancer:
         servers:
           - url: "{{env "STORAGE_URL"}}"
+    storage-image-server:
+      loadBalancer:
+        servers:
+          - url: "{{env "STORAGE_IMAGE_SERVER_URL"}}"
     
     # grafana:
     #   loadBalancer:

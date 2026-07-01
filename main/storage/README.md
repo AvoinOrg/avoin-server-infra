@@ -5,6 +5,19 @@ This stack runs SeaweedFS as the S3-compatible storage layer for
 `docker-compose.yml` under the `legacy-supabase` profile so it can be used for
 rollback or for one-time migration reads.
 
+The stack also runs `storage-image-server`, a small compatibility server for
+legacy Supabase public image URLs used by Avoin Map's Luonnonmetsakartat
+applet. It handles:
+
+```text
+/object/public/<bucket>/<key>
+/render/image/public/<bucket>/<key>?width=...&height=...&resize=...&quality=...&dpr=...
+```
+
+Those routes are intentionally separate from the SeaweedFS S3 endpoint. Traefik
+routes only those legacy path prefixes to `storage-image-server`; all other
+`storage.avoin.org` traffic goes to SeaweedFS.
+
 ## Runtime files
 
 Create these files on the server before starting the stack:
@@ -28,7 +41,7 @@ GeoServer `hiilikartta` store only needs:
 From `main/storage`:
 
 ```sh
-docker compose up -d seaweedfs
+docker compose up -d seaweedfs image-server
 ```
 
 Traefik exposes SeaweedFS through the existing storage router. In
@@ -36,6 +49,7 @@ Traefik exposes SeaweedFS through the existing storage router. In
 
 ```sh
 STORAGE_URL=http://seaweedfs:8333
+STORAGE_IMAGE_SERVER_URL=http://storage-image-server:8080
 ```
 
 Then restart Traefik:
@@ -52,6 +66,36 @@ https://storage.avoin.org
 ```
 
 Use path-style buckets for clients that support it.
+
+## Legacy Public Images
+
+The compatibility image server reads legacy Supabase-backed image objects from
+the old physical S3 bucket configured in `.env`:
+
+```sh
+GLOBAL_S3_BUCKET=avoin
+GLOBAL_S3_ENDPOINT=https://hel1.your-objectstorage.com
+AWS_ACCESS_KEY_ID=<old S3 access key>
+AWS_SECRET_ACCESS_KEY=<old S3 secret key>
+IMAGE_SERVER_SUPABASE_PREFIX=storage-single-tenant
+```
+
+For example:
+
+```text
+https://storage.avoin.org/object/public/luonnonmetsakartat-<layer-id>/<area-id>/<picture-id>.jpg
+```
+
+is served from:
+
+```text
+s3://$GLOBAL_S3_BUCKET/$IMAGE_SERVER_SUPABASE_PREFIX/luonnonmetsakartat-<layer-id>/<area-id>/<picture-id>.jpg
+```
+
+The render route resizes with Pillow and returns JPEG or PNG. It exists so the
+current Avoin Map frontend can keep using its Supabase-style
+`/object/` -> `/render/image/` URL replacement until the application is moved to
+a direct image URL helper.
 
 ## Hiilikartta migration
 

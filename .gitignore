@@ -1,4 +1,5 @@
 **/*.env
+__pycache__/
 main/storage/s3.json
 main/storage/volumes/
 
